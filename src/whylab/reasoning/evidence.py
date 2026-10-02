@@ -51,3 +51,28 @@ def update_epistemic_state(hypothesis: Hypothesis) -> Hypothesis:
         hypothesis.state = EpistemicState.OPEN
 
     return hypothesis
+
+
+def apply_rule_result(
+    hypothesis: Hypothesis,
+    observation: Observation,
+    direction: str,
+    reason: str,
+) -> Hypothesis:
+    """Apply a rule result to a hypothesis and update its epistemic state."""
+
+    if direction == "supports":
+        add_supporting_evidence(
+            hypothesis=hypothesis,
+            observation=observation,
+            reason=reason,
+        )
+    elif direction == "contradicts":
+        add_contradicting_evidence(
+            hypothesis=hypothesis,
+            observation=observation,
+            reason=reason,
+        )
+
+    update_epistemic_state(hypothesis)
+    return hypothesis
