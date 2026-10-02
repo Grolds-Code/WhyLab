@@ -13,7 +13,8 @@ def add_supporting_evidence(
         f"{f' {observation.unit}' if observation.unit else ''}: {reason}"
     )
 
-    hypothesis.evidence_for.append(evidence_entry)
+    if evidence_entry not in hypothesis.evidence_for:
+        hypothesis.evidence_for.append(evidence_entry)
     return hypothesis
 
 
@@ -29,7 +30,8 @@ def add_contradicting_evidence(
         f"{f' {observation.unit}' if observation.unit else ''}: {reason}"
     )
 
-    hypothesis.evidence_against.append(evidence_entry)
+    if evidence_entry not in hypothesis.evidence_against:
+        hypothesis.evidence_against.append(evidence_entry)
     return hypothesis
 
 
