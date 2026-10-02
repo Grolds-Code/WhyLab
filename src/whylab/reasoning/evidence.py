@@ -1,4 +1,4 @@
-from whylab.domain.models import Hypothesis, Observation
+from whylab.domain.models import EpistemicState, Hypothesis, Observation
 
 
 def add_supporting_evidence(
@@ -30,4 +30,24 @@ def add_contradicting_evidence(
     )
 
     hypothesis.evidence_against.append(evidence_entry)
+    return hypothesis
+
+
+def update_epistemic_state(hypothesis: Hypothesis) -> Hypothesis:
+    """Update a hypothesis state from its current evidence.
+
+    This rule is intentionally conservative:
+    mixed evidence remains OPEN, and KNOWN is never assigned automatically.
+    """
+
+    has_support = bool(hypothesis.evidence_for)
+    has_contradiction = bool(hypothesis.evidence_against)
+
+    if has_support and not has_contradiction:
+        hypothesis.state = EpistemicState.SUPPORTED
+    elif has_contradiction and not has_support:
+        hypothesis.state = EpistemicState.CONTRADICTED
+    else:
+        hypothesis.state = EpistemicState.OPEN
+
     return hypothesis
