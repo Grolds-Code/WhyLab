@@ -6,9 +6,20 @@ def recommend_next_test(
 ) -> Experiment | None:
     """Recommend the next discriminating test for the basil investigation."""
 
-    hypothesis_ids = {hypothesis.id for hypothesis in investigation.hypotheses}
+    hypotheses = {
+        hypothesis.id: hypothesis
+        for hypothesis in investigation.hypotheses
+    }
 
-    if {"H2", "H3"}.issubset(hypothesis_ids):
+    root_stress = hypotheses.get("H2")
+    insufficient_light = hypotheses.get("H3")
+
+    if (
+        root_stress is not None
+        and insufficient_light is not None
+        and root_stress.state.value == "supported"
+        and insufficient_light.state.value == "open"
+    ):
         return Experiment(
             question=(
                 "Does improving drainage reduce wilting while light exposure "

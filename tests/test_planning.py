@@ -39,3 +39,29 @@ def test_recommends_drainage_test_after_wet_soil_weakens_underwatering():
     assert "H2" in experiment.target_hypotheses
     assert "H3" in experiment.target_hypotheses
     assert len(experiment.predicted_results) >= 2
+
+
+def test_does_not_recommend_drainage_test_before_evidence():
+    investigation = Investigation(
+        id="INV-004",
+        question="Why is my basil wilting even though I'm watering it?",
+        domain="gardening",
+        hypotheses=[
+            Hypothesis(
+                id="H1",
+                claim="The plant is underwatered",
+            ),
+            Hypothesis(
+                id="H2",
+                claim="Excess water is causing root stress",
+            ),
+            Hypothesis(
+                id="H3",
+                claim="The plant is receiving insufficient light",
+            ),
+        ],
+    )
+
+    experiment = recommend_next_test(investigation)
+
+    assert experiment is None
