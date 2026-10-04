@@ -57,3 +57,41 @@ def evaluate_soil_moisture_for_underwatering(
         direction=EvidenceDirection.NEUTRAL,
         reason="Soil moisture is intermediate and does not strongly distinguish the hypothesis.",
     )
+
+
+def evaluate_soil_moisture_for_root_stress(
+    observation: Observation,
+    config: SoilMoistureRuleConfig | None = None,
+) -> EvidenceRuleResult:
+    """Interpret soil-moisture evidence for an excess-water/root-stress hypothesis."""
+
+    config = config or SoilMoistureRuleConfig()
+
+    if observation.variable != config.variable:
+        return EvidenceRuleResult(
+            direction=EvidenceDirection.NEUTRAL,
+            reason="Observation is not about soil moisture.",
+        )
+
+    if not isinstance(observation.value, (int, float)):
+        return EvidenceRuleResult(
+            direction=EvidenceDirection.NEUTRAL,
+            reason="Soil-moisture value is not numeric.",
+        )
+
+    if observation.value >= config.contradicts_underwatering_at_or_above:
+        return EvidenceRuleResult(
+            direction=EvidenceDirection.SUPPORTS,
+            reason="Persistently moist soil is consistent with excess water and possible root stress.",
+        )
+
+    if observation.value <= config.supports_underwatering_at_or_below:
+        return EvidenceRuleResult(
+            direction=EvidenceDirection.CONTRADICTS,
+            reason="Low soil moisture weakens an excess-water explanation.",
+        )
+
+    return EvidenceRuleResult(
+        direction=EvidenceDirection.NEUTRAL,
+        reason="Soil moisture is intermediate and does not strongly distinguish the hypothesis.",
+    )

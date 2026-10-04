@@ -40,7 +40,7 @@ def test_evidence_report_groups_hypotheses_by_state():
     assert len(report.contradicted) == 1
     assert report.contradicted[0].id == "H1"
 
-    assert len(report.open) == 1
-    assert report.open[0].id == "H2"
+    assert len(report.open) == 0
 
-    assert len(report.supported) == 0
+    assert len(report.supported) == 1
+    assert report.supported[0].id == "H2"
