@@ -42,3 +42,6 @@ htmlcov/
 # Temporary files
 tmp/
 temp/
+
+# Python package metadata
+*.egg-info/

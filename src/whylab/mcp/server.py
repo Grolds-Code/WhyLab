@@ -100,3 +100,21 @@ def create_mcp_server(
         )
 
     return server
+
+
+def main() -> None:
+    """Run WhyLab as a standalone MCP server over stdio."""
+
+    import os
+
+    database_path = os.environ.get(
+        "WHYLAB_DB_PATH",
+        "whylab.db",
+    )
+
+    server = create_mcp_server(database_path)
+    server.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

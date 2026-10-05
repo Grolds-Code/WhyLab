@@ -13,3 +13,9 @@ dev = [
     "httpx2>=2.13.1",
     "pytest>=9.1.1",
 ]
+
+[project.scripts]
+whylab-mcp = "whylab.mcp.server:main"
+
+[tool.uv]
+package = true
