@@ -2,15 +2,17 @@
 
 > **Alexa should not just answer "why?" — it should help you find out.**
 
-**WhyLab** is a persistent scientific-reasoning agent for the **Alexa+ track of the Amazon Developer Hackathon 2026**. Instead of responding to real-world questions with a single generated answer, WhyLab helps users investigate them through competing hypotheses, falsifiable predictions, controlled tests, evidence tracking, and belief revision across multiple sessions.
+**WhyLab** is a persistent scientific-reasoning agent being built for the **Alexa+ track of the Amazon Developer Hackathon 2026**.
 
-> **Status:** Early development — v0.1 specification and architecture phase.
+Instead of responding to real-world questions with a single generated explanation, WhyLab helps users investigate them through competing hypotheses, falsifiable predictions, observations, deterministic evidence updates, and discriminating follow-up experiments.
+
+> **Status:** Working v0.1 backend — persistent MCP service deployed on Modal, with an end-to-end basil investigation functioning in production.
 
 ---
 
 ## The Problem
 
-Modern AI assistants are optimized to produce an answer quickly.
+Modern AI assistants are optimized to produce answers quickly.
 
 But many real-world questions cannot be answered responsibly from a single prompt:
 
@@ -19,7 +21,7 @@ But many real-world questions cannot be answered responsibly from a single promp
 - Why does this machine make a noise only under certain conditions?
 - Why does an outcome keep changing despite the same intervention?
 
-A useful assistant should sometimes say:
+Sometimes the scientifically responsible response is:
 
 > **"We don't know yet. Here is how we can find out."**
 
@@ -27,9 +29,9 @@ WhyLab is built around that idea.
 
 ---
 
-## What Makes WhyLab Different
+## The Investigation Loop
 
-A conventional assistant follows:
+A conventional assistant often follows:
 
 ```text
 Question → Answer
@@ -42,21 +44,21 @@ Question
    ↓
 Competing hypotheses
    ↓
-Predictions
+Predictions and falsifiers
    ↓
-Potential confounders
-   ↓
-Falsification conditions
-   ↓
-Discriminating test
+Possible confounders
    ↓
 Real-world observation
    ↓
-Evidence update
+Deterministic evidence update
    ↓
-Next best test
+Evidence report
    ↓
-Supported / contradicted / unresolved conclusion
+Next discriminating experiment
+   ↓
+New observation
+   ↓
+Revised investigation state
 ```
 
 The product is not merely the conversation.
@@ -65,46 +67,31 @@ The product is not merely the conversation.
 
 ---
 
-## Core Principle: Falsification First
-
-WhyLab does not only ask:
-
-> What evidence supports this explanation?
-
-It also asks:
-
-> **What observation would make this explanation less plausible?**
-
-Each serious hypothesis is designed to track:
-
-- predictions;
-- evidence for;
-- evidence against;
-- possible confounders;
-- falsification conditions;
-- unresolved uncertainty.
-
-WhyLab is designed to change its conclusion when the evidence changes.
-
----
-
 ## Epistemic Contract
 
-WhyLab separates conclusions into three states:
+WhyLab separates evidence state from conversational fluency.
 
-### KNOWN
+A language model or interpreter may propose hypotheses, but it does **not** directly decide that a hypothesis has been established by evidence.
 
-The available evidence or an explicitly defined rule establishes the claim.
-
-### SUPPORTED
-
-Current evidence favors the explanation, but uncertainty remains.
+WhyLab currently tracks four states:
 
 ### OPEN
 
-The available evidence cannot yet distinguish competing explanations.
+The available evidence does not yet distinguish the hypothesis sufficiently.
 
-WhyLab should never present a merely plausible explanation as established fact.
+### SUPPORTED
+
+Current evidence favors the hypothesis, but uncertainty remains.
+
+### CONTRADICTED
+
+Current evidence conflicts with a prediction or falsification condition associated with the hypothesis.
+
+### KNOWN
+
+Reserved for claims established by an explicitly justified rule or sufficiently strong evidence process.
+
+WhyLab v0.1 does **not** automatically assign `KNOWN`.
 
 ---
 
@@ -114,116 +101,305 @@ The first end-to-end investigation is deliberately narrow:
 
 > **"My basil keeps wilting even though I'm watering it. Help me figure out why."**
 
-WhyLab should:
+WhyLab creates three competing hypotheses:
 
-1. formulate competing hypotheses;
-2. identify relevant variables;
-3. detect possible confounders;
-4. determine what each hypothesis predicts;
-5. identify evidence that could falsify each hypothesis;
-6. propose a simple discriminating test;
-7. persist the investigation;
-8. accept a later observation;
-9. update the evidence state;
-10. recommend the next useful test;
-11. explain what is supported, weakened, and still unresolved.
+```text
+H1 — The plant is underwatered
+H2 — Excess water is causing root stress
+H3 — The plant is receiving insufficient light
+```
 
-The goal is to make **one investigation exceptional before expanding scope**.
+All begin as:
+
+```text
+OPEN
+```
+
+If the user later reports:
+
+```text
+soil_moisture = 67 percent
+```
+
+the deterministic evidence engine updates the investigation to:
+
+```text
+H1 → CONTRADICTED
+H2 → SUPPORTED
+H3 → OPEN
+```
+
+WhyLab then recommends a discriminating experiment:
+
+```text
+Change:
+    drainage
+
+Hold constant:
+    watering amount
+    light exposure
+
+Compare:
+    H2 vs H3
+
+Observe:
+    soil moisture
+    wilting severity
+    drainage behavior
+
+Duration:
+    3 days
+```
+
+This entire flow is currently implemented and works through the deployed MCP service.
 
 ---
 
 ## Why Alexa+
 
-WhyLab is designed around interactions that happen while the user is doing something in the real world.
+WhyLab is designed for investigations that unfold while someone is interacting with the physical world.
 
-A user might report:
+A user could say:
 
-> "The soil is still wet, and two more leaves turned yellow."
+> "The soil is still wet, and the basil is still wilting."
 
-without stopping to open a conventional application.
+without stopping what they are doing to fill out a conventional application.
 
-Alexa+ provides a natural interface for:
+An Alexa+ experience is a natural interface for:
 
 - hands-free observations;
-- longitudinal investigations;
+- multi-day investigations;
 - conversational follow-ups;
-- persistent context;
-- short, glanceable evidence summaries.
+- persistent investigation state;
+- short evidence summaries;
+- guidance toward the next useful experiment.
 
-The Alexa+ experience will be demonstrated through a web-based simulated interface backed by real WhyLab tools.
+The planned hackathon experience uses an Alexa+-style conversational interface backed by the real WhyLab reasoning tools.
 
 ---
 
-## Planned Architecture
+## Current Architecture
 
 ```mermaid
 flowchart TD
-    U[User] --> A[Alexa+ Simulated Experience]
-    A --> M[MCP Tool Layer]
+    U[User / Alexa+ Experience] --> M[MCP Tool Layer]
 
-    M --> H[Hypothesis Engine]
-    M --> C[Causal Reasoning]
-    M --> F[Falsification Engine]
-    M --> E[Experiment Planner]
-    M --> O[Observation Recorder]
+    M --> A[Application Service]
+    A --> I[Question Interpreter]
+    A --> R[Deterministic Reasoning Engine]
+    A --> P[Experiment Planner]
 
-    H --> S[Investigation State]
-    C --> S
-    F --> S
-    E --> S
-    O --> S
+    R --> S[Investigation State]
+    P --> S
+    I --> S
 
-    S --> P[(Persistent Storage)]
+    S --> DB[(SQLite)]
+    DB --> V[Modal Persistent Volume]
 
-    S --> R[Evidence Report]
-    R --> A
+    S --> E[Evidence Report]
+    S --> N[Next Discriminating Test]
 
-    B[WhyLab-Bench] --> H
-    B --> C
-    B --> F
-    B --> E
+    B[WhyLab-Bench - planned] --> R
 ```
 
-The language model serves primarily as the **conversational interface and interpretation layer**.
+The language-model boundary is deliberately separated from the evidence-state machinery.
 
-Structured tools and deterministic components maintain investigation state, validate evidence transitions, execute causal operations where possible, and provide independently testable behavior.
+Interpretation may propose structure.
+
+**Evidence transitions remain explicit and testable.**
 
 ---
 
-## Planned MCP Tools
+## MCP Tool Surface
 
-WhyLab's initial tool surface will include:
+WhyLab currently exposes four MCP tools:
 
 ```text
-create_investigation
-formulate_hypotheses
-identify_variables
-identify_confounders
-generate_predictions
-generate_falsifiers
-design_discriminating_test
+start_investigation
 record_observation
-update_evidence
-recommend_next_test
-generate_evidence_report
+get_evidence_report
+get_next_test
 ```
 
-Each tool will have one clear responsibility and structured, testable inputs and outputs.
+### `start_investigation`
+
+Creates a persistent investigation from a natural-language question.
+
+### `record_observation`
+
+Records a real-world observation and applies deterministic evidence rules.
+
+### `get_evidence_report`
+
+Returns hypotheses grouped by their current evidence state.
+
+### `get_next_test`
+
+Recommends the next experiment intended to discriminate between remaining explanations.
+
+---
+
+## Persistence
+
+WhyLab stores complete investigation state in SQLite.
+
+The production deployment mounts that database on a persistent Modal Volume.
+
+Persistence has been verified across:
+
+```text
+MCP request
+    ↓
+database write
+    ↓
+Modal Volume commit
+    ↓
+container termination
+    ↓
+fresh Modal container
+    ↓
+investigation restored
+```
+
+The basil investigation retained its observation and evidence state after a full Modal container recreation.
+
+---
+
+## Deployment
+
+The WhyLab MCP server is deployed on **Modal** using Streamable HTTP.
+
+The deployment configuration:
+
+- uses Python 3.12;
+- keeps DNS-rebinding protection enabled;
+- explicitly trusts the production Modal hostname;
+- limits the deployment to one container;
+- processes one concurrent MCP input;
+- persists SQLite state on a Modal Volume;
+- commits state after writes.
+
+The MCP server has been verified remotely using the official Python MCP client.
+
+---
+
+## Reproducible Live Smoke Test
+
+The repository includes a production smoke test:
+
+```text
+scripts/live_mcp_smoke.py
+```
+
+It verifies the deployed service end-to-end:
+
+```text
+server connection
+    ↓
+tool discovery
+    ↓
+start investigation
+    ↓
+record soil-moisture observation
+    ↓
+verify evidence-state transition
+    ↓
+generate evidence report
+    ↓
+recommend discriminating experiment
+```
+
+Run it with:
+
+```bash
+python scripts/live_mcp_smoke.py \
+  --url <STREAMABLE_HTTP_MCP_URL>
+```
+
+A successful run reports:
+
+```text
+PASS: live server exposes the four WhyLab tools
+PASS: investigation starts with all hypotheses open
+PASS: deterministic evidence update is correct
+PASS: evidence report is correct
+PASS: next discriminating experiment is correct
+
+WhyLab live MCP smoke test PASSED
+```
+
+---
+
+## Local Development
+
+WhyLab uses Python 3.12 and `uv`.
+
+Install dependencies:
+
+```bash
+uv sync
+```
+
+Run the test suite:
+
+```bash
+uv run pytest -q
+```
+
+Run the MCP server locally over stdio:
+
+```bash
+uv run whylab-mcp
+```
+
+Run it locally with Streamable HTTP:
+
+```bash
+WHYLAB_MCP_TRANSPORT=streamable-http \
+WHYLAB_MCP_HOST=127.0.0.1 \
+WHYLAB_MCP_PORT=8765 \
+uv run whylab-mcp
+```
+
+---
+
+## Project Structure
+
+```text
+WhyLab/
+├── docs/
+├── scripts/
+│   └── live_mcp_smoke.py
+├── src/
+│   └── whylab/
+│       ├── api/
+│       ├── application/
+│       ├── deploy/
+│       ├── domain/
+│       ├── interpreters/
+│       ├── mcp/
+│       ├── reasoning/
+│       ├── storage/
+│       └── tools/
+├── tests/
+├── pyproject.toml
+└── README.md
+```
 
 ---
 
 ## WhyLab-Bench
 
-WhyLab will include an evaluation suite using synthetic causal scenarios with known ground truth.
+A structured evaluation suite is planned to test whether the WhyLab workflow improves scientific reasoning relative to a less structured baseline.
 
-Planned evaluation dimensions include:
+Candidate dimensions include:
 
-- confounder detection;
+- confounder identification;
 - prediction correctness;
-- test/intervention validity;
 - falsifier identification;
+- intervention quality;
 - evidence updating;
-- unsupported causal claim rate;
+- unsupported causal claims;
 - tool-selection correctness;
 - multi-session consistency.
 
@@ -239,96 +415,48 @@ Results will be reported as measured, including negative results.
 
 ---
 
-## Development Philosophy
+## Development Principles
 
-WhyLab follows four rules:
+**1. Depth over feature count.**
+One exceptional investigation is more valuable than many shallow demos.
 
-**1. Depth over feature count.**  
-A smaller coherent product is preferable to a large collection of unfinished features.
-
-**2. Everything demonstrated must be real.**  
+**2. Everything demonstrated must be real.**
 No simulated tool calls, fabricated benchmarks, or decorative functionality.
 
-**3. Evaluation over claims.**  
-If we claim the structured workflow improves reasoning, we should measure it.
+**3. Evaluation over claims.**
+If WhyLab claims to improve reasoning, that improvement should be measurable.
 
-**4. Investigate rather than merely answer.**  
-Every feature must strengthen the scientific investigation loop.
+**4. Falsification matters.**
+A hypothesis should include not only supporting predictions, but also conditions that would count against it.
 
----
+**5. Evidence state is not generated prose.**
+Interpretation and conversation may use models; scientific state transitions remain independently testable.
 
-## Development Stack
-
-The planned stack includes:
-
-- **Python** — reasoning engine and backend
-- **FastAPI** — application API
-- **Model Context Protocol (MCP)** — agent tool interface
-- **SQLite** — initial persistent investigation state
-- **React / TypeScript** — simulated Alexa+ experience
-- **Modal** — remote compute, inference, benchmarking, and deployment
-- **GitHub** — version control and reproducibility
-- **Codex Cloud** — assisted implementation, testing, and code review
-
-Heavy compute and model inference are intended to run remotely rather than on the development laptop.
+**6. Persistence is part of the product.**
+An investigation should survive beyond a single conversation or runtime instance.
 
 ---
 
-## Repository
+## Current Stack
 
-```text
-WhyLab/
-├── docs/
-│   ├── WHYLAB_SPEC_V0.1.md
-│   └── COMPETITION_STRATEGY.md
-├── README.md
-└── .gitignore
-```
+- **Python 3.12**
+- **Pydantic**
+- **FastAPI**
+- **Model Context Protocol (MCP)**
+- **SQLite**
+- **Modal**
+- **pytest**
+- **uv**
+- **GitHub**
 
-The structure will expand as implementation begins.
-
----
-
-## Roadmap
-
-- [x] Define product thesis
-- [x] Define competition strategy
-- [x] Define v0.1 specification
-- [ ] Implement investigation state model
-- [ ] Implement hypothesis and evidence models
-- [ ] Implement falsification engine
-- [ ] Implement discriminating-test planner
-- [ ] Add persistence
-- [ ] Expose MCP tools
-- [ ] Build Alexa+ simulation
-- [ ] Build WhyLab-Bench
-- [ ] Run baseline evaluations
-- [ ] Polish three-minute demo
-- [ ] Prepare final hackathon submission
+Planned interface work includes the Alexa+-style conversational demonstration and associated frontend experience.
 
 ---
 
-## Documentation
+## Competition Goal
 
-Detailed project decisions live in:
+WhyLab is being built around one central proposition:
 
-- [`docs/WHYLAB_SPEC_V0.1.md`](docs/WHYLAB_SPEC_V0.1.md) — product and engineering specification
-- [`docs/COMPETITION_STRATEGY.md`](docs/COMPETITION_STRATEGY.md) — scope and competition strategy
+> **An AI assistant should not merely generate explanations. It should help a person conduct a better investigation.**
 
----
-
-## Amazon Developer Hackathon 2026
-
-WhyLab is being developed for the **Alexa+ primary track** of the Amazon Developer Hackathon 2026.
-
-The project is currently under active development.
-
----
-
-## Guiding Question
-
-Before adding a feature, we ask:
-
-> **Does this help WhyLab investigate rather than merely answer?**
-
-If not, it probably does not belong in WhyLab.
+The v0.1 basil workflow is the first proof of that idea.
