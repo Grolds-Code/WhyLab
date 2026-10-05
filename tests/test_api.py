@@ -247,3 +247,35 @@ def test_create_investigation_from_natural_language_question(tmp_path):
     assert persisted.json()["question"] == (
         "My basil keeps wilting even though I'm watering it."
     )
+
+
+def test_default_api_configuration_handles_basil_question(tmp_path):
+    app = create_app(tmp_path / "whylab.db")
+    client = TestClient(app)
+
+    response = client.post(
+        "/investigations/from-question",
+        json={
+            "investigation_id": "INV-DEFAULT-001",
+            "question": (
+                "My basil keeps wilting even though I'm watering it."
+            ),
+        },
+    )
+
+    assert response.status_code == 201
+
+    investigation = response.json()
+
+    assert investigation["id"] == "INV-DEFAULT-001"
+    assert investigation["domain"] == "gardening"
+    assert len(investigation["hypotheses"]) == 3
+
+    assert [
+        hypothesis["state"]
+        for hypothesis in investigation["hypotheses"]
+    ] == [
+        "open",
+        "open",
+        "open",
+    ]

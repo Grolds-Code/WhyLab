@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from whylab.application.builder import InvestigationBuilder
 from whylab.application.service import WhyLabService
 from whylab.domain.models import Experiment, Investigation, Observation
+from whylab.interpreters.basil import BasilQuestionInterpreter
 from whylab.reasoning.report import EvidenceReport
 from whylab.storage.sqlite import InvestigationStore
 
@@ -24,9 +25,14 @@ def create_app(
     """Create the WhyLab HTTP API."""
 
     store = InvestigationStore(database_path)
+
+    configured_builder = builder or InvestigationBuilder(
+        interpreter=BasilQuestionInterpreter(),
+    )
+
     service = WhyLabService(
         store,
-        builder=builder,
+        builder=configured_builder,
     )
 
     app = FastAPI(
