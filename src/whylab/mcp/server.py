@@ -103,7 +103,7 @@ def create_mcp_server(
 
 
 def main() -> None:
-    """Run WhyLab as a standalone MCP server over stdio."""
+    """Run WhyLab as a standalone MCP server."""
 
     import os
 
@@ -111,9 +111,33 @@ def main() -> None:
         "WHYLAB_DB_PATH",
         "whylab.db",
     )
+    transport = os.environ.get(
+        "WHYLAB_MCP_TRANSPORT",
+        "stdio",
+    )
 
     server = create_mcp_server(database_path)
-    server.run(transport="stdio")
+
+    if transport == "streamable-http":
+        host = os.environ.get(
+            "WHYLAB_MCP_HOST",
+            "127.0.0.1",
+        )
+        port = int(
+            os.environ.get(
+                "WHYLAB_MCP_PORT",
+                "8000",
+            )
+        )
+
+        server.run(
+            transport="streamable-http",
+            host=host,
+            port=port,
+        )
+        return
+
+    server.run(transport=transport)
 
 
 if __name__ == "__main__":
