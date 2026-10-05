@@ -171,3 +171,79 @@ def test_api_returns_evidence_report_and_next_test(tmp_path):
     assert next_test["variable_changed"] == "drainage"
     assert "H2" in next_test["target_hypotheses"]
     assert "H3" in next_test["target_hypotheses"]
+
+
+def test_create_investigation_from_natural_language_question(tmp_path):
+    from whylab.application.builder import (
+        HypothesisDraft,
+        InvestigationBuilder,
+        InvestigationDraft,
+    )
+
+    class FakeQuestionInterpreter:
+        def interpret(self, question: str) -> InvestigationDraft:
+            return InvestigationDraft(
+                domain="gardening",
+                variables=[
+                    "soil_moisture",
+                    "drainage",
+                    "light_exposure",
+                ],
+                hypotheses=[
+                    HypothesisDraft(
+                        claim="The plant is underwatered",
+                    ),
+                    HypothesisDraft(
+                        claim="Excess water is causing root stress",
+                    ),
+                    HypothesisDraft(
+                        claim="The plant is receiving insufficient light",
+                    ),
+                ],
+            )
+
+    builder = InvestigationBuilder(
+        interpreter=FakeQuestionInterpreter(),
+    )
+
+    app = create_app(
+        tmp_path / "whylab.db",
+        builder=builder,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/investigations/from-question",
+        json={
+            "investigation_id": "INV-API-NL-001",
+            "question": (
+                "My basil keeps wilting even though I'm watering it."
+            ),
+        },
+    )
+
+    assert response.status_code == 201
+
+    investigation = response.json()
+
+    assert investigation["id"] == "INV-API-NL-001"
+    assert investigation["domain"] == "gardening"
+    assert len(investigation["hypotheses"]) == 3
+
+    assert [
+        hypothesis["state"]
+        for hypothesis in investigation["hypotheses"]
+    ] == [
+        "open",
+        "open",
+        "open",
+    ]
+
+    persisted = client.get(
+        "/investigations/INV-API-NL-001",
+    )
+
+    assert persisted.status_code == 200
+    assert persisted.json()["question"] == (
+        "My basil keeps wilting even though I'm watering it."
+    )

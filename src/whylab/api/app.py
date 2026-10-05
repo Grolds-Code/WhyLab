@@ -1,18 +1,33 @@
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
+from pydantic import BaseModel
 
+from whylab.application.builder import InvestigationBuilder
 from whylab.application.service import WhyLabService
 from whylab.domain.models import Experiment, Investigation, Observation
 from whylab.reasoning.report import EvidenceReport
 from whylab.storage.sqlite import InvestigationStore
 
 
-def create_app(database_path: str | Path) -> FastAPI:
+class InvestigationQuestionRequest(BaseModel):
+    """Request body for starting an investigation from natural language."""
+
+    investigation_id: str
+    question: str
+
+
+def create_app(
+    database_path: str | Path,
+    builder: InvestigationBuilder | None = None,
+) -> FastAPI:
     """Create the WhyLab HTTP API."""
 
     store = InvestigationStore(database_path)
-    service = WhyLabService(store)
+    service = WhyLabService(
+        store,
+        builder=builder,
+    )
 
     app = FastAPI(
         title="WhyLab API",
@@ -32,6 +47,25 @@ def create_app(database_path: str | Path) -> FastAPI:
         investigation: Investigation,
     ) -> Investigation:
         return service.create_investigation(investigation)
+
+    @app.post(
+        "/investigations/from-question",
+        response_model=Investigation,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_investigation_from_question(
+        request: InvestigationQuestionRequest,
+    ) -> Investigation:
+        try:
+            return service.create_investigation_from_question(
+                question=request.question,
+                investigation_id=request.investigation_id,
+            )
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
 
     @app.get(
         "/investigations/{investigation_id}",
