@@ -2,6 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import modal
+from mcp.server.transport_security import TransportSecuritySettings
 
 from whylab.mcp.server import create_mcp_server
 
@@ -15,6 +16,8 @@ DATABASE_PATH = Path(VOLUME_MOUNT_PATH) / "whylab.db"
 def build_mcp_asgi_app(
     database_path: str | Path,
     after_save: Callable[[], None] | None = None,
+    allowed_hosts: list[str] | None = None,
+    allowed_origins: list[str] | None = None,
 ):
     """Build WhyLab's stateless Streamable HTTP MCP ASGI app."""
 
@@ -23,9 +26,16 @@ def build_mcp_asgi_app(
         after_save=after_save,
     )
 
+    transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed_hosts or [],
+        allowed_origins=allowed_origins or [],
+    )
+
     return server.streamable_http_app(
         streamable_http_path="/mcp",
         stateless_http=True,
+        transport_security=transport_security,
     )
 
 
@@ -60,4 +70,10 @@ def mcp_app():
     return build_mcp_asgi_app(
         DATABASE_PATH,
         after_save=volume.commit,
+        allowed_hosts=[
+            "groldotieno97--whylab-mcp-mcp-app.modal.run",
+        ],
+        allowed_origins=[
+            "https://groldotieno97--whylab-mcp-mcp-app.modal.run",
+        ],
     )
