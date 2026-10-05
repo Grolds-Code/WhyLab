@@ -279,3 +279,21 @@ def test_default_api_configuration_handles_basil_question(tmp_path):
         "open",
         "open",
     ]
+
+
+def test_default_api_rejects_unsupported_question_cleanly(tmp_path):
+    app = create_app(tmp_path / "whylab.db")
+    client = TestClient(app)
+
+    response = client.post(
+        "/investigations/from-question",
+        json={
+            "investigation_id": "INV-UNSUPPORTED-001",
+            "question": "Why does my car make a knocking sound?",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "WhyLab v0.1 currently supports basil-wilting investigations only."
+    )

@@ -6,7 +6,10 @@ from pydantic import BaseModel
 from whylab.application.builder import InvestigationBuilder
 from whylab.application.service import WhyLabService
 from whylab.domain.models import Experiment, Investigation, Observation
-from whylab.interpreters.basil import BasilQuestionInterpreter
+from whylab.interpreters.basil import (
+    BasilQuestionInterpreter,
+    UnsupportedQuestionError,
+)
 from whylab.reasoning.report import EvidenceReport
 from whylab.storage.sqlite import InvestigationStore
 
@@ -67,6 +70,11 @@ def create_app(
                 question=request.question,
                 investigation_id=request.investigation_id,
             )
+        except UnsupportedQuestionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
