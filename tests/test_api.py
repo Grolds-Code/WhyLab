@@ -47,3 +47,61 @@ def test_create_and_retrieve_investigation_through_api(tmp_path):
     assert restored["question"] == payload["question"]
     assert len(restored["hypotheses"]) == 3
     assert restored["hypotheses"][0]["state"] == "open"
+
+
+def test_record_observation_updates_and_persists_hypotheses(tmp_path):
+    app = create_app(tmp_path / "whylab.db")
+    client = TestClient(app)
+
+    investigation_payload = {
+        "id": "INV-API-002",
+        "question": "Why is my basil wilting even though I'm watering it?",
+        "domain": "gardening",
+        "hypotheses": [
+            {
+                "id": "H1",
+                "claim": "The plant is underwatered",
+            },
+            {
+                "id": "H2",
+                "claim": "Excess water is causing root stress",
+            },
+            {
+                "id": "H3",
+                "claim": "The plant is receiving insufficient light",
+            },
+        ],
+    }
+
+    client.post(
+        "/investigations",
+        json=investigation_payload,
+    )
+
+    observation_response = client.post(
+        "/investigations/INV-API-002/observations",
+        json={
+            "variable": "soil_moisture",
+            "value": 67,
+            "unit": "percent",
+        },
+    )
+
+    assert observation_response.status_code == 200
+
+    updated = observation_response.json()
+
+    assert len(updated["observations"]) == 1
+    assert updated["hypotheses"][0]["state"] == "contradicted"
+    assert updated["hypotheses"][1]["state"] == "supported"
+    assert updated["hypotheses"][2]["state"] == "open"
+
+    persisted_response = client.get(
+        "/investigations/INV-API-002",
+    )
+
+    persisted = persisted_response.json()
+
+    assert len(persisted["observations"]) == 1
+    assert persisted["hypotheses"][0]["state"] == "contradicted"
+    assert persisted["hypotheses"][1]["state"] == "supported"

@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, status
 
 from whylab.application.service import WhyLabService
-from whylab.domain.models import Investigation
+from whylab.domain.models import Investigation, Observation
 from whylab.storage.sqlite import InvestigationStore
 
 
@@ -40,6 +40,27 @@ def create_app(database_path: str | Path) -> FastAPI:
         investigation_id: str,
     ) -> Investigation:
         investigation = service.get_investigation(investigation_id)
+
+        if investigation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Investigation not found.",
+            )
+
+        return investigation
+
+    @app.post(
+        "/investigations/{investigation_id}/observations",
+        response_model=Investigation,
+    )
+    def record_observation(
+        investigation_id: str,
+        observation: Observation,
+    ) -> Investigation:
+        investigation = service.record_observation(
+            investigation_id,
+            observation,
+        )
 
         if investigation is None:
             raise HTTPException(
