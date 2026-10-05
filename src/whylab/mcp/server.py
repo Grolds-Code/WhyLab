@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from collections.abc import Callable
 from pathlib import Path
 
 from mcp.server import MCPServer
@@ -11,10 +13,14 @@ from whylab.tools.facade import WhyLabTools
 
 def create_mcp_server(
     database_path: str | Path,
+    after_save: Callable[[], None] | None = None,
 ) -> MCPServer:
     """Create the WhyLab MCP server."""
 
-    store = InvestigationStore(database_path)
+    store = InvestigationStore(
+        database_path,
+        after_save=after_save,
+    )
 
     builder = InvestigationBuilder(
         interpreter=BasilQuestionInterpreter(),

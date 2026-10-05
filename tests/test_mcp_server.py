@@ -102,3 +102,27 @@ def test_mcp_tools_run_complete_investigation_flow(tmp_path):
         assert "H3" in next_test["target_hypotheses"]
 
     asyncio.run(run_flow())
+
+
+def test_mcp_server_calls_persistence_hook_after_save(tmp_path):
+    calls = []
+
+    server = create_mcp_server(
+        tmp_path / "whylab.db",
+        after_save=lambda: calls.append("committed"),
+    )
+
+    async def run_flow():
+        await server.call_tool(
+            "start_investigation",
+            {
+                "investigation_id": "INV-PERSIST-MCP-001",
+                "question": (
+                    "My basil keeps wilting even though I'm watering it."
+                ),
+            },
+        )
+
+    asyncio.run(run_flow())
+
+    assert calls == ["committed"]
