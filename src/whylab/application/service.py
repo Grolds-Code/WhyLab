@@ -1,3 +1,4 @@
+from whylab.application.builder import InvestigationBuilder
 from whylab.domain.models import Experiment, Investigation, Observation
 from whylab.reasoning.investigation import apply_observation_to_investigation
 from whylab.reasoning.planning import recommend_next_test
@@ -8,14 +9,38 @@ from whylab.storage.sqlite import InvestigationStore
 class WhyLabService:
     """Coordinate persistence and scientific reasoning workflows."""
 
-    def __init__(self, store: InvestigationStore):
+    def __init__(
+        self,
+        store: InvestigationStore,
+        builder: InvestigationBuilder | None = None,
+    ):
         self.store = store
+        self.builder = builder
 
     def create_investigation(
         self,
         investigation: Investigation,
     ) -> Investigation:
         self.store.save(investigation)
+        return investigation
+
+    def create_investigation_from_question(
+        self,
+        question: str,
+        investigation_id: str,
+    ) -> Investigation:
+        if self.builder is None:
+            raise RuntimeError(
+                "No investigation builder is configured."
+            )
+
+        investigation = self.builder.build(
+            question=question,
+            investigation_id=investigation_id,
+        )
+
+        self.store.save(investigation)
+
         return investigation
 
     def get_investigation(

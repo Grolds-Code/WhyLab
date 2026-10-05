@@ -57,3 +57,65 @@ def test_service_runs_persistent_investigation_workflow(tmp_path):
 
     assert next_test is not None
     assert next_test.variable_changed == "drainage"
+
+
+def test_service_creates_and_persists_investigation_from_question(tmp_path):
+    from whylab.application.builder import (
+        HypothesisDraft,
+        InvestigationBuilder,
+        InvestigationDraft,
+    )
+
+    class FakeQuestionInterpreter:
+        def interpret(self, question: str) -> InvestigationDraft:
+            return InvestigationDraft(
+                domain="gardening",
+                variables=[
+                    "soil_moisture",
+                    "drainage",
+                    "light_exposure",
+                ],
+                hypotheses=[
+                    HypothesisDraft(
+                        claim="The plant is underwatered",
+                    ),
+                    HypothesisDraft(
+                        claim="Excess water is causing root stress",
+                    ),
+                    HypothesisDraft(
+                        claim="The plant is receiving insufficient light",
+                    ),
+                ],
+            )
+
+    store = InvestigationStore(tmp_path / "whylab.db")
+
+    builder = InvestigationBuilder(
+        interpreter=FakeQuestionInterpreter(),
+    )
+
+    service = WhyLabService(
+        store,
+        builder=builder,
+    )
+
+    investigation = service.create_investigation_from_question(
+        question="My basil keeps wilting even though I'm watering it.",
+        investigation_id="INV-NL-001",
+    )
+
+    assert investigation.id == "INV-NL-001"
+    assert investigation.domain == "gardening"
+    assert len(investigation.hypotheses) == 3
+    assert all(
+        hypothesis.state.value == "open"
+        for hypothesis in investigation.hypotheses
+    )
+
+    restored = service.get_investigation("INV-NL-001")
+
+    assert restored is not None
+    assert restored.question == (
+        "My basil keeps wilting even though I'm watering it."
+    )
+    assert len(restored.hypotheses) == 3
