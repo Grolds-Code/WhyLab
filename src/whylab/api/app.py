@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
@@ -24,10 +25,14 @@ class InvestigationQuestionRequest(BaseModel):
 def create_app(
     database_path: str | Path,
     builder: InvestigationBuilder | None = None,
+    after_save: Callable[[], None] | None = None,
 ) -> FastAPI:
     """Create the WhyLab HTTP API."""
 
-    store = InvestigationStore(database_path)
+    store = InvestigationStore(
+        database_path,
+        after_save=after_save,
+    )
 
     configured_builder = builder or InvestigationBuilder(
         interpreter=BasilQuestionInterpreter(),

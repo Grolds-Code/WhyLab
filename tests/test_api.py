@@ -297,3 +297,29 @@ def test_default_api_rejects_unsupported_question_cleanly(tmp_path):
     assert response.json()["detail"] == (
         "WhyLab v0.1 currently supports basil-wilting investigations only."
     )
+
+
+def test_api_invokes_after_save_hook_for_persistent_write(tmp_path):
+    calls = []
+
+    def after_save():
+        calls.append("saved")
+
+    app = create_app(
+        tmp_path / "whylab.db",
+        after_save=after_save,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/investigations/from-question",
+        json={
+            "investigation_id": "INV-HOOK-001",
+            "question": (
+                "My basil keeps wilting even though I'm watering it."
+            ),
+        },
+    )
+
+    assert response.status_code == 201
+    assert calls == ["saved"]
