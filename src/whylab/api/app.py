@@ -3,7 +3,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, status
 
 from whylab.application.service import WhyLabService
-from whylab.domain.models import Investigation, Observation
+from whylab.domain.models import Experiment, Investigation, Observation
+from whylab.reasoning.report import EvidenceReport
 from whylab.storage.sqlite import InvestigationStore
 
 
@@ -69,5 +70,39 @@ def create_app(database_path: str | Path) -> FastAPI:
             )
 
         return investigation
+
+    @app.get(
+        "/investigations/{investigation_id}/report",
+        response_model=EvidenceReport,
+    )
+    def get_evidence_report(
+        investigation_id: str,
+    ) -> EvidenceReport:
+        report = service.get_evidence_report(investigation_id)
+
+        if report is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Investigation not found.",
+            )
+
+        return report
+
+    @app.get(
+        "/investigations/{investigation_id}/next-test",
+        response_model=Experiment,
+    )
+    def get_next_test(
+        investigation_id: str,
+    ) -> Experiment:
+        experiment = service.recommend_next_test(investigation_id)
+
+        if experiment is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No next test is currently available.",
+            )
+
+        return experiment
 
     return app
