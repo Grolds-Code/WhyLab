@@ -80,3 +80,16 @@ def test_builder_creates_open_structured_investigation_from_question():
     )
 
     assert investigation.hypotheses[0].falsifiers
+
+
+def test_hypothesis_draft_rejects_epistemic_state_from_interpreter():
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        HypothesisDraft.model_validate(
+            {
+                "claim": "The plant is underwatered",
+                "state": "known",
+            }
+        )

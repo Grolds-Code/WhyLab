@@ -1,12 +1,14 @@
 from typing import Protocol
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from whylab.domain.models import Hypothesis, Investigation
 
 
 class HypothesisDraft(BaseModel):
     """A proposed explanation produced during question interpretation."""
+
+    model_config = ConfigDict(extra="forbid")
 
     claim: str
     predictions: list[str] = Field(default_factory=list)
@@ -17,6 +19,8 @@ class HypothesisDraft(BaseModel):
 
 class InvestigationDraft(BaseModel):
     """Structured interpretation of a user's natural-language question."""
+
+    model_config = ConfigDict(extra="forbid")
 
     domain: str
     hypotheses: list[HypothesisDraft] = Field(default_factory=list)
