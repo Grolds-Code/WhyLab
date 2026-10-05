@@ -1,121 +1,453 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useState, type FormEvent } from 'react'
+import {
+  recordObservation,
+  startInvestigation,
+  type EpistemicState,
+  type Investigation,
+} from './api'
 import './App.css'
 
+const DEMO_QUESTION =
+  "My basil keeps wilting even though I'm watering it. Help me figure out why."
+
+const stateLabels: Record<EpistemicState, string> = {
+  open: 'Open',
+  supported: 'Supported',
+  contradicted: 'Contradicted',
+  known: 'Known',
+}
+
+function WhyLabMark() {
+  return (
+    <div className="brand-mark" aria-hidden="true">
+      <span className="brand-orbit brand-orbit-one" />
+      <span className="brand-orbit brand-orbit-two" />
+      <span className="brand-core" />
+    </div>
+  )
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [question, setQuestion] = useState(DEMO_QUESTION)
+  const [investigation, setInvestigation] =
+    useState<Investigation | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [observationValue, setObservationValue] = useState('67')
+  const [isRecording, setIsRecording] = useState(false)
+  const [observationError, setObservationError] = useState<string | null>(null)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedQuestion = question.trim()
+
+    if (!trimmedQuestion || isStarting) {
+      return
+    }
+
+    setIsStarting(true)
+    setError(null)
+
+    try {
+      const created = await startInvestigation(trimmedQuestion)
+      setInvestigation(created)
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'WhyLab could not start this investigation.',
+      )
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
+  async function handleRecordObservation(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    if (!investigation || isRecording) {
+      return
+    }
+
+    const numericValue = Number(observationValue)
+
+    if (
+      !Number.isFinite(numericValue) ||
+      numericValue < 0 ||
+      numericValue > 100
+    ) {
+      setObservationError(
+        'Enter a soil-moisture value between 0 and 100 percent.',
+      )
+      return
+    }
+
+    setIsRecording(true)
+    setObservationError(null)
+
+    try {
+      const updated = await recordObservation(
+        investigation.id,
+        'soil_moisture',
+        numericValue,
+        'percent',
+      )
+
+      setInvestigation(updated)
+    } catch (requestError) {
+      setObservationError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'WhyLab could not record this observation.',
+      )
+    } finally {
+      setIsRecording(false)
+    }
+  }
+
+  function resetInvestigation() {
+    setInvestigation(null)
+    setError(null)
+    setObservationError(null)
+    setObservationValue('67')
+    setQuestion(DEMO_QUESTION)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <WhyLabMark />
+          <div>
+            <div className="brand-name">WhyLab</div>
+            <div className="brand-version">Research companion · v0.1</div>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+
         <button
+          className="new-investigation"
           type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          onClick={resetInvestigation}
         >
-          Count is {count}
+          <span aria-hidden="true">＋</span>
+          New investigation
         </button>
-      </section>
 
-      <div className="ticks"></div>
+        <nav className="sidebar-nav" aria-label="WhyLab navigation">
+          <button className="nav-item nav-item-active" type="button">
+            <span className="nav-icon" aria-hidden="true">
+              ◌
+            </span>
+            Investigation
+          </button>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <div className="nav-item nav-item-muted">
+            <span className="nav-icon" aria-hidden="true">
+              ⌁
+            </span>
+            Evidence trail
+          </div>
+
+          <div className="nav-item nav-item-muted">
+            <span className="nav-icon" aria-hidden="true">
+              ◇
+            </span>
+            Experiments
+          </div>
+        </nav>
+
+        <div className="sidebar-spacer" />
+
+        <div className="epistemic-note">
+          <span className="note-dot" />
+          <div>
+            <strong>Falsification first</strong>
+            <p>
+              WhyLab keeps generated explanations separate from evidence state.
+            </p>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </aside>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main className="workspace">
+        <header className="topbar">
+          <div>
+            <span className="eyebrow">Scientific reasoning workspace</span>
+          </div>
+
+          <div className="system-status">
+            <span className="status-dot" />
+            Live reasoning service
+          </div>
+        </header>
+
+        {!investigation ? (
+          <section className="welcome-panel">
+            <div className="ambient ambient-one" />
+            <div className="ambient ambient-two" />
+
+            <div className="welcome-content">
+              <div className="question-orb" aria-hidden="true">
+                <div className="orb-ring orb-ring-one" />
+                <div className="orb-ring orb-ring-two" />
+                <div className="orb-center">?</div>
+              </div>
+
+              <p className="welcome-kicker">Ask a question worth testing</p>
+
+              <h1>
+                Don&apos;t just ask <em>why.</em>
+                <br />
+                Find out.
+              </h1>
+
+              <p className="welcome-copy">
+                WhyLab turns a real-world question into competing hypotheses,
+                falsifiable predictions, observations, and the next useful
+                experiment.
+              </p>
+
+              <form className="question-form" onSubmit={handleSubmit}>
+                <label className="sr-only" htmlFor="question">
+                  Investigation question
+                </label>
+
+                <textarea
+                  id="question"
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  rows={3}
+                  placeholder="What are you trying to understand?"
+                  disabled={isStarting}
+                />
+
+                <div className="question-actions">
+                  <span className="scope-note">
+                    v0.1 supports basil-wilting investigations
+                  </span>
+
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={isStarting || !question.trim()}
+                  >
+                    {isStarting ? (
+                      <>
+                        <span className="spinner" aria-hidden="true" />
+                        Forming hypotheses
+                      </>
+                    ) : (
+                      <>
+                        Start investigation
+                        <span aria-hidden="true">→</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {error && (
+                <div className="error-banner" role="alert">
+                  <strong>WhyLab couldn&apos;t start that investigation.</strong>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className="method-strip">
+                <div>
+                  <span className="method-number">01</span>
+                  <strong>Compete</strong>
+                  <p>Keep multiple explanations alive.</p>
+                </div>
+
+                <div className="method-divider" />
+
+                <div>
+                  <span className="method-number">02</span>
+                  <strong>Test</strong>
+                  <p>Look for evidence that discriminates.</p>
+                </div>
+
+                <div className="method-divider" />
+
+                <div>
+                  <span className="method-number">03</span>
+                  <strong>Revise</strong>
+                  <p>Change the conclusion when evidence changes.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="investigation-view">
+            <div className="investigation-heading">
+              <div>
+                <span className="eyebrow">Active investigation</span>
+                <h1>{investigation.question}</h1>
+              </div>
+
+              <div className="investigation-id">
+                <span>Investigation</span>
+                <code>{investigation.id.slice(0, 18)}…</code>
+              </div>
+            </div>
+
+            <div className="investigation-summary">
+              <div className="summary-card">
+                <span>Domain</span>
+                <strong>{investigation.domain}</strong>
+              </div>
+
+              <div className="summary-card">
+                <span>Hypotheses</span>
+                <strong>{investigation.hypotheses.length}</strong>
+              </div>
+
+              <div className="summary-card">
+                <span>Observations</span>
+                <strong>{investigation.observations.length}</strong>
+              </div>
+
+              <div className="summary-card">
+                <span>Status</span>
+                <strong className="capitalize">
+                  {investigation.status}
+                </strong>
+              </div>
+            </div>
+
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Competing explanations</span>
+                <h2>What could explain this?</h2>
+              </div>
+
+              <p>
+                Every hypothesis starts open. Evidence — not fluency — changes
+                its state.
+              </p>
+            </div>
+
+            <div className="hypothesis-grid">
+              {investigation.hypotheses.map((hypothesis) => (
+                <article className="hypothesis-card" key={hypothesis.id}>
+                  <div className="hypothesis-meta">
+                    <span className="hypothesis-id">{hypothesis.id}</span>
+                    <span
+                      className={`state-pill state-${hypothesis.state}`}
+                    >
+                      {stateLabels[hypothesis.state]}
+                    </span>
+                  </div>
+
+                  <h3>{hypothesis.claim}</h3>
+
+                  <div className="hypothesis-section">
+                    <span className="card-label">Prediction</span>
+                    <p>
+                      {hypothesis.predictions[0] ??
+                        'No prediction recorded yet.'}
+                    </p>
+                  </div>
+
+                  <div className="hypothesis-section falsifier">
+                    <span className="card-label">What could count against it</span>
+                    <p>
+                      {hypothesis.falsifiers[0] ??
+                        'No falsifier recorded yet.'}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="next-stage">
+              <div>
+                <span className="eyebrow">Evidence update</span>
+                <h2>
+                  {investigation.observations.length > 0
+                    ? 'Evidence changed the picture.'
+                    : 'Bring in an observation.'}
+                </h2>
+                <p>
+                  {investigation.observations.length > 0
+                    ? 'WhyLab has applied the observation to the competing hypotheses. The cards above now reflect the current evidence state.'
+                    : 'Report what you observe in the real world. WhyLab will apply deterministic evidence rules and revise only the hypotheses affected by that evidence.'}
+                </p>
+              </div>
+
+              <form
+                className="observation-panel"
+                onSubmit={handleRecordObservation}
+              >
+                <div className="observation-heading">
+                  <div>
+                    <span className="card-label">Observation</span>
+                    <strong>Soil moisture</strong>
+                  </div>
+
+                  <span className="observation-variable">
+                    soil_moisture
+                  </span>
+                </div>
+
+                <div className="observation-control">
+                  <input
+                    aria-label="Soil moisture percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={observationValue}
+                    onChange={(event) =>
+                      setObservationValue(event.target.value)
+                    }
+                    disabled={isRecording}
+                  />
+                  <span className="observation-unit">%</span>
+
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={isRecording || !observationValue}
+                  >
+                    {isRecording ? (
+                      <>
+                        <span className="spinner" aria-hidden="true" />
+                        Updating evidence
+                      </>
+                    ) : (
+                      <>
+                        Record observation
+                        <span aria-hidden="true">→</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {observationError && (
+                  <div className="observation-error" role="alert">
+                    {observationError}
+                  </div>
+                )}
+
+                {investigation.observations.length > 0 && (
+                  <div className="observation-confirmation">
+                    <span className="status-dot" />
+                    {investigation.observations.length} observation
+                    {investigation.observations.length === 1 ? '' : 's'} stored
+                    in this investigation
+                  </div>
+                )}
+              </form>
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
   )
 }
 
