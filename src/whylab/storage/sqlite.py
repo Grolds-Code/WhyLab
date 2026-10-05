@@ -1,4 +1,5 @@
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 
 from whylab.domain.models import Investigation
@@ -7,8 +8,13 @@ from whylab.domain.models import Investigation
 class InvestigationStore:
     """Persist investigations in a local SQLite database."""
 
-    def __init__(self, database_path: str | Path):
+    def __init__(
+        self,
+        database_path: str | Path,
+        after_save: Callable[[], None] | None = None,
+    ):
         self.database_path = Path(database_path)
+        self.after_save = after_save
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
@@ -38,6 +44,9 @@ class InvestigationStore:
                 """,
                 (investigation.id, payload),
             )
+
+        if self.after_save is not None:
+            self.after_save()
 
     def get(self, investigation_id: str) -> Investigation | None:
         with self._connect() as connection:

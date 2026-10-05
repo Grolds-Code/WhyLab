@@ -35,3 +35,22 @@ def test_investigation_survives_save_and_reload(tmp_path):
     assert len(restored.hypotheses) == 1
     assert len(restored.observations) == 1
     assert restored.observations[0].value == 67
+
+
+def test_store_calls_after_save_hook(tmp_path):
+    calls = []
+
+    store = InvestigationStore(
+        tmp_path / "whylab.db",
+        after_save=lambda: calls.append("committed"),
+    )
+
+    investigation = Investigation(
+        id="INV-HOOK-001",
+        question="Why is my basil wilting?",
+        domain="gardening",
+    )
+
+    store.save(investigation)
+
+    assert calls == ["committed"]
