@@ -115,12 +115,12 @@ def build_combined_asgi_app(
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install_from_pyproject("pyproject.toml")
-    .add_local_python_source("whylab")
     .add_local_dir(
         "frontend/dist",
         str(FRONTEND_DIST_PATH),
         copy=True,
     )
+    .add_local_python_source("whylab")
 )
 
 volume = modal.Volume.from_name(
