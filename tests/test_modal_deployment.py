@@ -245,3 +245,108 @@ def test_combined_asgi_app_runs_http_and_mcp_lifespans(monkeypatch, tmp_path):
         "mcp-stop",
         "http-stop",
     ]
+
+def test_combined_asgi_app_can_serve_frontend_index(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    frontend_dist = tmp_path / "dist"
+    frontend_dist.mkdir()
+    (frontend_dist / "assets").mkdir()
+    (frontend_dist / "index.html").write_text(
+        "<!doctype html><html><body>WhyLab frontend</body></html>"
+    )
+
+    http_api = FastAPI()
+    mcp_api = FastAPI()
+
+    monkeypatch.setattr(
+        modal_app,
+        "build_http_api_app",
+        lambda path, after_save=None: http_api,
+    )
+    monkeypatch.setattr(
+        modal_app,
+        "build_mcp_asgi_app",
+        lambda path, after_save=None, allowed_hosts=None, allowed_origins=None: mcp_api,
+    )
+
+    app = modal_app.build_combined_asgi_app(
+        tmp_path / "whylab.db",
+        frontend_dist_path=frontend_dist,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert "WhyLab frontend" in response.text
+
+def test_combined_asgi_app_serves_frontend_assets(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    frontend_dist = tmp_path / "dist"
+    assets_dir = frontend_dist / "assets"
+    assets_dir.mkdir(parents=True)
+    (frontend_dist / "index.html").write_text("<!doctype html>")
+    (assets_dir / "app.js").write_text("console.log('WhyLab');")
+
+    http_api = FastAPI()
+    mcp_api = FastAPI()
+
+    monkeypatch.setattr(
+        modal_app,
+        "build_http_api_app",
+        lambda path, after_save=None: http_api,
+    )
+    monkeypatch.setattr(
+        modal_app,
+        "build_mcp_asgi_app",
+        lambda path, after_save=None, allowed_hosts=None, allowed_origins=None: mcp_api,
+    )
+
+    app = modal_app.build_combined_asgi_app(
+        tmp_path / "whylab.db",
+        frontend_dist_path=frontend_dist,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/assets/app.js")
+
+    assert response.status_code == 200
+    assert "WhyLab" in response.text
+
+def test_combined_asgi_app_serves_frontend_favicon(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    frontend_dist = tmp_path / "dist"
+    (frontend_dist / "assets").mkdir(parents=True)
+    (frontend_dist / "index.html").write_text("<!doctype html>")
+    (frontend_dist / "favicon.svg").write_text("<svg>WhyLab</svg>")
+
+    http_api = FastAPI()
+    mcp_api = FastAPI()
+
+    monkeypatch.setattr(
+        modal_app,
+        "build_http_api_app",
+        lambda path, after_save=None: http_api,
+    )
+    monkeypatch.setattr(
+        modal_app,
+        "build_mcp_asgi_app",
+        lambda path, after_save=None, allowed_hosts=None, allowed_origins=None: mcp_api,
+    )
+
+    app = modal_app.build_combined_asgi_app(
+        tmp_path / "whylab.db",
+        frontend_dist_path=frontend_dist,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/favicon.svg")
+
+    assert response.status_code == 200
+    assert "WhyLab" in response.text

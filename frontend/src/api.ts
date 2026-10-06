@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.DEV ? '/api' : ''
+
 export type EpistemicState =
   | 'open'
   | 'supported'
@@ -56,7 +58,7 @@ export async function startInvestigation(
 ): Promise<Investigation> {
   const investigationId = `INV-${crypto.randomUUID()}`
 
-  const response = await fetch('/api/investigations/from-question', {
+  const response = await fetch(`${API_BASE}/investigations/from-question`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +83,7 @@ export async function recordObservation(
   unit: string | null = null,
 ): Promise<Investigation> {
   const response = await fetch(
-    `/api/investigations/${encodeURIComponent(investigationId)}/observations`,
+    `${API_BASE}/investigations/${encodeURIComponent(investigationId)}/observations`,
     {
       method: 'POST',
       headers: {
@@ -116,7 +118,7 @@ export async function getNextTest(
   investigationId: string,
 ): Promise<Experiment> {
   const response = await fetch(
-    `/api/investigations/${encodeURIComponent(investigationId)}/next-test`,
+    `${API_BASE}/investigations/${encodeURIComponent(investigationId)}/next-test`,
   )
 
   if (!response.ok) {
