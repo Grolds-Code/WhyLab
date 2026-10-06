@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import {
+  getNextTest,
   recordObservation,
   startInvestigation,
   type EpistemicState,
+  type Experiment,
   type Investigation,
 } from './api'
 import './App.css'
@@ -36,6 +38,8 @@ function App() {
   const [observationValue, setObservationValue] = useState('67')
   const [isRecording, setIsRecording] = useState(false)
   const [observationError, setObservationError] = useState<string | null>(null)
+  const [nextTest, setNextTest] = useState<Experiment | null>(null)
+  const [nextTestError, setNextTestError] = useState<string | null>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -97,6 +101,19 @@ function App() {
       )
 
       setInvestigation(updated)
+
+      try {
+        const experiment = await getNextTest(updated.id)
+        setNextTest(experiment)
+        setNextTestError(null)
+      } catch (requestError) {
+        setNextTest(null)
+        setNextTestError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'WhyLab could not recommend the next experiment.',
+        )
+      }
     } catch (requestError) {
       setObservationError(
         requestError instanceof Error
@@ -113,6 +130,8 @@ function App() {
     setError(null)
     setObservationError(null)
     setObservationValue('67')
+    setNextTest(null)
+    setNextTestError(null)
     setQuestion(DEMO_QUESTION)
   }
 
@@ -444,6 +463,88 @@ function App() {
                 )}
               </form>
             </div>
+
+            {nextTest && (
+              <section className="experiment-panel">
+                <div className="experiment-intro">
+                  <span className="eyebrow">
+                    Next discriminating experiment
+                  </span>
+
+                  <h2>{nextTest.question}</h2>
+
+                  <p>
+                    This test is chosen from the current evidence state to
+                    distinguish the explanations that remain plausible.
+                  </p>
+                </div>
+
+                <div className="experiment-grid">
+                  <div className="experiment-detail">
+                    <span className="card-label">Change</span>
+                    <strong>{nextTest.variable_changed}</strong>
+                  </div>
+
+                  <div className="experiment-detail">
+                    <span className="card-label">Compare</span>
+                    <strong>
+                      {nextTest.target_hypotheses.join(' vs ')}
+                    </strong>
+                  </div>
+
+                  <div className="experiment-detail">
+                    <span className="card-label">Duration</span>
+                    <strong>
+                      {nextTest.duration_days}{' '}
+                      {nextTest.duration_days === 1 ? 'day' : 'days'}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="experiment-body">
+                  <div>
+                    <span className="card-label">Hold constant</span>
+                    <ul>
+                      {nextTest.variables_held_constant.map((variable) => (
+                        <li key={variable}>{variable}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <span className="card-label">Observe</span>
+                    <ul>
+                      {nextTest.observations_required.map((observation) => (
+                        <li key={observation}>{observation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="prediction-comparison">
+                  {Object.entries(nextTest.predicted_results).map(
+                    ([hypothesisId, prediction]) => (
+                      <div
+                        className="prediction-row"
+                        key={hypothesisId}
+                      >
+                        <span>{hypothesisId}</span>
+                        <p>{prediction}</p>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </section>
+            )}
+
+            {nextTestError && (
+              <div className="next-test-error" role="alert">
+                <strong>Evidence was updated successfully.</strong>
+                <span>
+                  The next experiment could not be loaded: {nextTestError}
+                </span>
+              </div>
+            )}
           </section>
         )}
       </main>

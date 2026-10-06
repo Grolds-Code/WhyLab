@@ -928,3 +928,141 @@
     grid-column: 1 / -1;
   }
 }
+
+.experiment-panel {
+  margin-top: 28px;
+  border: 1px solid rgba(146, 126, 255, 0.16);
+  border-radius: 16px;
+  padding: 24px;
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(111, 83, 234, 0.08),
+      transparent 34%
+    ),
+    rgba(12, 13, 19, 0.78);
+}
+
+.experiment-intro {
+  max-width: 760px;
+}
+
+.experiment-intro h2 {
+  margin: 8px 0 0;
+  color: #e4e2ea;
+  font-size: 20px;
+  font-weight: 540;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+}
+
+.experiment-intro p {
+  margin: 9px 0 0;
+  color: #70727f;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.experiment-grid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.experiment-detail {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.experiment-detail + .experiment-detail {
+  border-left: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.experiment-detail strong {
+  color: #c9c7d2;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.experiment-body {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+}
+
+.experiment-body > div {
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  padding-top: 14px;
+}
+
+.experiment-body ul {
+  margin: 8px 0 0;
+  padding-left: 17px;
+  color: #858793;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.prediction-comparison {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.prediction-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 0;
+}
+
+.prediction-row + .prediction-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.prediction-row > span {
+  color: #9a87ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.prediction-row p {
+  margin: 0;
+  color: #858793;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.next-test-error {
+  margin-top: 18px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 184, 92, 0.16);
+  border-radius: 11px;
+  padding: 12px 15px;
+  color: #a98c69;
+  background: rgba(128, 83, 31, 0.06);
+  font-size: 10px;
+}
+
+.next-test-error strong {
+  color: #d5b385;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .experiment-grid,
+  .experiment-body {
+    grid-template-columns: 1fr;
+  }
+
+  .experiment-detail + .experiment-detail {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.065);
+  }
+}

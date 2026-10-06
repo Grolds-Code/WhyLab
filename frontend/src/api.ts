@@ -101,3 +101,27 @@ export async function recordObservation(
 
   return (await response.json()) as Investigation
 }
+
+export interface Experiment {
+  question: string
+  target_hypotheses: string[]
+  variable_changed: string
+  variables_held_constant: string[]
+  observations_required: string[]
+  duration_days: number
+  predicted_results: Record<string, string>
+}
+
+export async function getNextTest(
+  investigationId: string,
+): Promise<Experiment> {
+  const response = await fetch(
+    `/api/investigations/${encodeURIComponent(investigationId)}/next-test`,
+  )
+
+  if (!response.ok) {
+    throw new Error(await readError(response))
+  }
+
+  return (await response.json()) as Experiment
+}
