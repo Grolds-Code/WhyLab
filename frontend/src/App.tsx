@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   checkHealth,
+  getEvidenceReport,
   getNextTest,
   recordObservation,
   startInvestigation,
   type EpistemicState,
+  type EvidenceReport,
   type Experiment,
   type Investigation,
 } from './api'
@@ -30,6 +32,62 @@ function WhyLabMark() {
   )
 }
 
+function EvidenceGroup({
+  title,
+  items,
+}: {
+  title: string
+  items: EvidenceReport['supported']
+}) {
+  return (
+    <section className="evidence-group">
+      <span className="eyebrow">{title}</span>
+
+      {items.map((hypothesis) => (
+        <article className="evidence-item" key={hypothesis.id}>
+          <div className="evidence-item-heading">
+            <span>{hypothesis.id}</span>
+            <strong>{hypothesis.claim}</strong>
+          </div>
+
+          {hypothesis.evidence_for.length > 0 && (
+            <div>
+              <span className="card-label">Evidence for</span>
+              <ul>
+                {hypothesis.evidence_for.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {hypothesis.evidence_against.length > 0 && (
+            <div>
+              <span className="card-label">Evidence against</span>
+              <ul>
+                {hypothesis.evidence_against.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {hypothesis.uncertainties.length > 0 && (
+            <div>
+              <span className="card-label">Uncertainty</span>
+              <ul>
+                {hypothesis.uncertainties.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </article>
+      ))}
+    </section>
+  )
+}
+
 function App() {
   const [question, setQuestion] = useState(DEMO_QUESTION)
   const [investigation, setInvestigation] =
@@ -41,6 +99,12 @@ function App() {
   const [observationError, setObservationError] = useState<string | null>(null)
   const [nextTest, setNextTest] = useState<Experiment | null>(null)
   const [nextTestError, setNextTestError] = useState<string | null>(null)
+  const [evidenceReport, setEvidenceReport] =
+    useState<EvidenceReport | null>(null)
+  const [evidenceReportError, setEvidenceReportError] =
+    useState<string | null>(null)
+  const [activeView, setActiveView] =
+    useState<'investigation' | 'evidence'>('investigation')
   const [isServiceLive, setIsServiceLive] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -56,6 +120,30 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  async function handleEvidenceView() {
+    if (!investigation) {
+      return
+    }
+
+    setActiveView('evidence')
+
+    if (evidenceReport) {
+      return
+    }
+
+    try {
+      const report = await getEvidenceReport(investigation.id)
+      setEvidenceReport(report)
+      setEvidenceReportError(null)
+    } catch (requestError) {
+      setEvidenceReportError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'WhyLab could not load the evidence report.',
+      )
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -119,6 +207,19 @@ function App() {
       setInvestigation(updated)
 
       try {
+        const report = await getEvidenceReport(updated.id)
+        setEvidenceReport(report)
+        setEvidenceReportError(null)
+      } catch (requestError) {
+        setEvidenceReport(null)
+        setEvidenceReportError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'WhyLab could not load the evidence report.',
+        )
+      }
+
+      try {
         const experiment = await getNextTest(updated.id)
         setNextTest(experiment)
         setNextTestError(null)
@@ -148,6 +249,9 @@ function App() {
     setObservationValue('67')
     setNextTest(null)
     setNextTestError(null)
+    setEvidenceReport(null)
+    setEvidenceReportError(null)
+    setActiveView('investigation')
     setQuestion(DEMO_QUESTION)
   }
 
@@ -172,19 +276,32 @@ function App() {
         </button>
 
         <nav className="sidebar-nav" aria-label="WhyLab navigation">
-          <button className="nav-item nav-item-active" type="button">
+          <button
+            className={`nav-item ${
+              activeView === 'investigation' ? 'nav-item-active' : ''
+            }`}
+            type="button"
+            onClick={() => setActiveView('investigation')}
+          >
             <span className="nav-icon" aria-hidden="true">
               ◌
             </span>
             Investigation
           </button>
 
-          <div className="nav-item nav-item-muted">
+          <button
+            className={`nav-item ${
+              activeView === 'evidence' ? 'nav-item-active' : ''
+            }`}
+            type="button"
+            onClick={handleEvidenceView}
+            disabled={!investigation}
+          >
             <span className="nav-icon" aria-hidden="true">
               ⌁
             </span>
             Evidence trail
-          </div>
+          </button>
 
           <div className="nav-item nav-item-muted">
             <span className="nav-icon" aria-hidden="true">
@@ -366,9 +483,75 @@ function App() {
               </div>
             </div>
 
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Competing explanations</span>
+            {activeView === 'evidence' && (
+              <section className="evidence-view">
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">Evidence trail</span>
+                    <h2>What has the investigation learned?</h2>
+                  </div>
+
+                  <p>
+                    An audit record of what was observed, what changed, and
+                    why each hypothesis gained or lost support.
+                  </p>
+                </div>
+
+                {evidenceReport ? (
+                  <>
+                    <div className="investigation-summary evidence-summary">
+                      <div className="summary-card">
+                        <span>Supported</span>
+                        <strong>{evidenceReport.supported.length}</strong>
+                      </div>
+
+                      <div className="summary-card">
+                        <span>Contradicted</span>
+                        <strong>{evidenceReport.contradicted.length}</strong>
+                      </div>
+
+                      <div className="summary-card">
+                        <span>Open</span>
+                        <strong>{evidenceReport.open.length}</strong>
+                      </div>
+
+                      <div className="summary-card">
+                        <span>Observations</span>
+                        <strong>{evidenceReport.observation_count}</strong>
+                      </div>
+                    </div>
+
+                    <div className="evidence-groups">
+                      <EvidenceGroup
+                        title="Supported"
+                        items={evidenceReport.supported}
+                      />
+                      <EvidenceGroup
+                        title="Contradicted"
+                        items={evidenceReport.contradicted}
+                      />
+                      <EvidenceGroup
+                        title="Open"
+                        items={evidenceReport.open}
+                      />
+                    </div>
+                  </>
+                ) : evidenceReportError ? (
+                  <div className="error-banner" role="alert">
+                    <strong>Evidence report unavailable.</strong>
+                    <span>{evidenceReportError}</span>
+                  </div>
+                ) : (
+                  <p>Loading evidence report…</p>
+                )}
+              </section>
+            )}
+
+            {activeView === 'investigation' && (
+              <>
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">Competing explanations</span>
                 <h2>What could explain this?</h2>
               </div>
 
@@ -565,16 +748,23 @@ function App() {
               </section>
             )}
 
-            {nextTestError && (
-              <div className="next-test-error" role="alert">
-                <strong>Evidence was updated successfully.</strong>
-                <span>
-                  The next experiment could not be loaded: {nextTestError}
-                </span>
-              </div>
+                {nextTestError && (
+                  <div className="next-test-error" role="alert">
+                    <strong>Evidence was updated successfully.</strong>
+                    <span>
+                      The next experiment could not be loaded: {nextTestError}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </section>
         )}
+
+        <footer className="site-footer">
+          <span>WhyLab · Falsification first · v0.1</span>
+          <span>Scientific reasoning for questions worth testing.</span>
+        </footer>
       </main>
     </div>
   )

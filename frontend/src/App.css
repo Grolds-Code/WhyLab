@@ -573,6 +573,54 @@
   font-weight: 560;
 }
 
+.evidence-groups {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.evidence-group {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-item {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 14px;
+  padding: 18px;
+  background: rgba(12, 13, 19, 0.78);
+}
+
+.evidence-item-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.evidence-item-heading span {
+  color: #8e7cf2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.evidence-item-heading strong {
+  color: #d8d7df;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.evidence-item ul {
+  margin: 7px 0 0;
+  padding-left: 16px;
+  color: #858795;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .capitalize {
   text-transform: capitalize;
 }
@@ -743,6 +791,32 @@
   box-shadow: 0 0 0 4px rgba(153, 135, 244, 0.06);
 }
 
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 54px 38px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+  padding: 22px 0 26px;
+  color: #666978;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.site-footer span:first-child {
+  color: #8b8d9a;
+}
+
+@media (max-width: 640px) {
+  .site-footer {
+    margin: 40px 20px 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -773,15 +847,35 @@
   }
 
   .brand-version,
-  .sidebar-nav,
   .sidebar-spacer,
   .epistemic-note {
     display: none;
   }
 
+  .sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .new-investigation {
     width: auto;
-    margin-left: auto;
+    margin-left: 0;
+    justify-self: end;
+  }
+
+  .sidebar-nav {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .nav-item {
+    justify-content: center;
+    min-width: 0;
+    padding: 9px 8px;
+    text-align: center;
   }
 
   .topbar {
@@ -852,6 +946,10 @@
   .section-heading > p {
     width: 100%;
     text-align: left;
+  }
+
+  .evidence-groups {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -113,6 +113,38 @@ export async function recordObservation(
   return (await response.json()) as Investigation
 }
 
+export interface HypothesisSummary {
+  id: string
+  claim: string
+  state: string
+  evidence_for: string[]
+  evidence_against: string[]
+  uncertainties: string[]
+}
+
+export interface EvidenceReport {
+  investigation_id: string
+  question: string
+  supported: HypothesisSummary[]
+  contradicted: HypothesisSummary[]
+  open: HypothesisSummary[]
+  observation_count: number
+}
+
+export async function getEvidenceReport(
+  investigationId: string,
+): Promise<EvidenceReport> {
+  const response = await fetch(
+    `${API_BASE}/investigations/${encodeURIComponent(investigationId)}/report`,
+  )
+
+  if (!response.ok) {
+    throw new Error(await readError(response))
+  }
+
+  return (await response.json()) as EvidenceReport
+}
+
 export interface Experiment {
   question: string
   target_hypotheses: string[]
