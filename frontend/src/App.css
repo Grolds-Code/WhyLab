@@ -204,8 +204,21 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+.status-dot-live {
   background: #72d6a0;
   box-shadow: 0 0 10px rgba(114, 214, 160, 0.5);
+}
+
+.status-dot-checking {
+  background: #c9a85f;
+  box-shadow: 0 0 10px rgba(201, 168, 95, 0.35);
+}
+
+.status-dot-offline {
+  background: #d36f78;
+  box-shadow: 0 0 10px rgba(211, 111, 120, 0.35);
 }
 
 .welcome-panel {

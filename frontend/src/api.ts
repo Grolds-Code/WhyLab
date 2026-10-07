@@ -44,6 +44,15 @@ interface ApiError {
   detail?: string
 }
 
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/health`)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 async function readError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as ApiError

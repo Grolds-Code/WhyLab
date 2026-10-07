@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
+  checkHealth,
   getNextTest,
   recordObservation,
   startInvestigation,
@@ -40,6 +41,21 @@ function App() {
   const [observationError, setObservationError] = useState<string | null>(null)
   const [nextTest, setNextTest] = useState<Experiment | null>(null)
   const [nextTestError, setNextTestError] = useState<string | null>(null)
+  const [isServiceLive, setIsServiceLive] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    checkHealth().then((isLive) => {
+      if (!cancelled) {
+        setIsServiceLive(isLive)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -198,8 +214,20 @@ function App() {
           </div>
 
           <div className="system-status">
-            <span className="status-dot" />
-            Live reasoning service
+            <span
+              className={`status-dot ${
+                isServiceLive === true
+                  ? 'status-dot-live'
+                  : isServiceLive === false
+                    ? 'status-dot-offline'
+                    : 'status-dot-checking'
+              }`}
+            />
+            {isServiceLive === true
+              ? 'Live reasoning service'
+              : isServiceLive === false
+                ? 'Reasoning service unavailable'
+                : 'Checking reasoning service'}
           </div>
         </header>
 

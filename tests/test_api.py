@@ -323,3 +323,15 @@ def test_api_invokes_after_save_hook_for_persistent_write(tmp_path):
 
     assert response.status_code == 201
     assert calls == ["saved"]
+
+def test_health_endpoint_reports_service_ready(tmp_path):
+    app = create_app(tmp_path / "whylab.db")
+    client = TestClient(app)
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "service": "whylab",
+    }

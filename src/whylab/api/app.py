@@ -52,6 +52,16 @@ def create_app(
         ),
     )
 
+    @app.get(
+        "/health",
+        include_in_schema=False,
+    )
+    def health():
+        return {
+            "status": "ok",
+            "service": "whylab",
+        }
+
     @app.post(
         "/investigations",
         response_model=Investigation,
