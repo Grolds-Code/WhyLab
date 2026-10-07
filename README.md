@@ -6,7 +6,13 @@
 
 Instead of responding to real-world questions with a single generated explanation, WhyLab helps users investigate them through competing hypotheses, falsifiable predictions, observations, deterministic evidence updates, and discriminating follow-up experiments.
 
-> **Status:** Working v0.1 backend — persistent MCP service deployed on Modal, with an end-to-end basil investigation functioning in production.
+> **Status:** Working v0.1 production system — public React interface, persistent HTTP API, and MCP service deployed together on Modal, with the end-to-end basil investigation functioning live.
+
+## Live Demo
+
+**Public app:** https://groldotieno97--whylab-mcp-mcp-app.modal.run
+
+**MCP endpoint:** https://groldotieno97--whylab-mcp-mcp-app.modal.run/mcp
 
 ---
 
@@ -151,7 +157,7 @@ Duration:
     3 days
 ```
 
-This entire flow is currently implemented and works through the deployed MCP service.
+This entire flow is currently implemented and works through both the public browser interface and the deployed MCP service.
 
 ---
 
@@ -174,7 +180,7 @@ An Alexa+ experience is a natural interface for:
 - short evidence summaries;
 - guidance toward the next useful experiment.
 
-The planned hackathon experience uses an Alexa+-style conversational interface backed by the real WhyLab reasoning tools.
+The current public browser experience demonstrates the real investigation loop end-to-end. An Alexa+-style conversational layer is planned on top of the same WhyLab reasoning tools.
 
 ---
 
@@ -182,8 +188,13 @@ The planned hackathon experience uses an Alexa+-style conversational interface b
 
 ```mermaid
 flowchart TD
-    U[User / Alexa+ Experience] --> M[MCP Tool Layer]
+    U[User] --> W[Public React Interface]
+    U --> X[Alexa+ Experience - planned]
 
+    W --> H[HTTP API]
+    X --> M[MCP Tool Layer]
+
+    H --> A[Application Service]
     M --> A[Application Service]
     A --> I[Question Interpreter]
     A --> R[Deterministic Reasoning Engine]
@@ -267,11 +278,12 @@ The basil investigation retained its observation and evidence state after a full
 
 ## Deployment
 
-The WhyLab MCP server is deployed on **Modal** using Streamable HTTP.
+WhyLab is deployed on **Modal** as one production ASGI application serving the public React frontend, persistent HTTP API, and Streamable HTTP MCP endpoint.
 
 The deployment configuration:
 
 - uses Python 3.12;
+- packages the built React frontend into the Modal image;
 - keeps DNS-rebinding protection enabled;
 - explicitly trusts the production Modal hostname;
 - limits the deployment to one container;
@@ -279,7 +291,7 @@ The deployment configuration:
 - persists SQLite state on a Modal Volume;
 - commits state after writes.
 
-The MCP server has been verified remotely using the official Python MCP client.
+The production MCP service has been verified remotely using the official Python MCP client, and the public browser investigation flow has been exercised against the same live deployment.
 
 ---
 
@@ -368,6 +380,9 @@ uv run whylab-mcp
 ```text
 WhyLab/
 ├── docs/
+├── frontend/
+│   ├── src/
+│   └── vite.config.ts
 ├── scripts/
 │   └── live_mcp_smoke.py
 ├── src/
@@ -444,12 +459,15 @@ An investigation should survive beyond a single conversation or runtime instance
 - **FastAPI**
 - **Model Context Protocol (MCP)**
 - **SQLite**
+- **TypeScript**
+- **React**
+- **Vite**
 - **Modal**
 - **pytest**
 - **uv**
 - **GitHub**
 
-Planned interface work includes the Alexa+-style conversational demonstration and associated frontend experience.
+The public React interface is live. The next interface milestone is the Alexa+-style conversational demonstration backed by the same real investigation tools and persistent state.
 
 ---
 
