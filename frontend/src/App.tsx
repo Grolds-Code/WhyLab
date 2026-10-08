@@ -803,7 +803,7 @@ function App() {
 
                 {investigation.observations.length > 0 && (
                   <div className="observation-confirmation">
-                    <span className="status-dot" />
+                    <span className="status-dot status-dot-live" />
                     {investigation.observations.length} observation
                     {investigation.observations.length === 1 ? '' : 's'} stored
                     in this investigation
