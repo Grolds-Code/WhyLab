@@ -642,6 +642,14 @@
   letter-spacing: -0.025em;
 }
 
+.view-context {
+  max-width: 620px;
+  margin: 7px 0 0;
+  color: #777987;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .section-heading > p {
   width: min(380px, 44%);
   margin: 0;

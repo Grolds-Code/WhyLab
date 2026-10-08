@@ -108,6 +108,20 @@ function App() {
   const [isServiceLive, setIsServiceLive] = useState<boolean | null>(null)
 
   useEffect(() => {
+    if (!window.matchMedia('(max-width: 920px)').matches) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`${activeView}-view`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeView])
+
+  useEffect(() => {
     let cancelled = false
 
     checkHealth().then((isLive) => {
@@ -454,17 +468,19 @@ function App() {
           </section>
         ) : (
           <section className="investigation-view">
-            <div className="investigation-heading">
-              <div>
-                <span className="eyebrow">Active investigation</span>
-                <h1>{investigation.question}</h1>
-              </div>
+            {activeView === 'investigation' && (
+              <div className="investigation-heading">
+                <div>
+                  <span className="eyebrow">Active investigation</span>
+                  <h1>{investigation.question}</h1>
+                </div>
 
-              <div className="investigation-id">
-                <span>Investigation</span>
-                <code>{investigation.id.slice(0, 18)}…</code>
+                <div className="investigation-id">
+                  <span>Investigation</span>
+                  <code>{investigation.id.slice(0, 18)}…</code>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="investigation-summary">
               <div className="summary-card">
@@ -491,11 +507,14 @@ function App() {
             </div>
 
             {activeView === 'evidence' && (
-              <section className="evidence-view">
+              <section id="evidence-view" className="evidence-view">
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">Evidence trail</span>
                     <h2>What has the investigation learned?</h2>
+                    <p className="view-context">
+                      Investigation · {investigation.question}
+                    </p>
                   </div>
 
                   <p>
@@ -555,11 +574,14 @@ function App() {
             )}
 
             {activeView === 'experiments' && (
-              <section className="experiments-view">
+              <section id="experiments-view" className="experiments-view">
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">Experiments</span>
                     <h2>What should we test next?</h2>
+                    <p className="view-context">
+                      For · {investigation.question}
+                    </p>
                   </div>
 
                   <p>
@@ -664,7 +686,7 @@ function App() {
 
             {activeView === 'investigation' && (
               <>
-                <div className="section-heading">
+                <div id="investigation-view" className="section-heading">
                   <div>
                     <span className="eyebrow">Competing explanations</span>
                 <h2>What could explain this?</h2>
