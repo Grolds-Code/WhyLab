@@ -2,6 +2,11 @@ from whylab.application.builder import (
     HypothesisDraft,
     InvestigationDraft,
 )
+from whylab.domain.models import (
+    ComparisonOperator,
+    EvidenceEffect,
+    EvidenceRule,
+)
 
 
 class UnsupportedQuestionError(ValueError):
@@ -47,6 +52,40 @@ class BasilQuestionInterpreter:
                     confounders=[
                         "high_temperature",
                     ],
+                    evidence_rules=[
+                        EvidenceRule(
+                            variable="soil_moisture",
+                            operator=ComparisonOperator.LTE,
+                            value=30,
+                            unit="percent",
+                            effect=EvidenceEffect.SUPPORTS,
+                            reason=(
+                                "Low soil moisture is consistent with "
+                                "underwatering."
+                            ),
+                            provenance="WhyLab v0.1 basil demonstration assumption",
+                            rationale=(
+                                "Demonstration threshold, not a universal "
+                                "botanical rule."
+                            ),
+                        ),
+                        EvidenceRule(
+                            variable="soil_moisture",
+                            operator=ComparisonOperator.GTE,
+                            value=60,
+                            unit="percent",
+                            effect=EvidenceEffect.CONTRADICTS,
+                            reason=(
+                                "Relatively moist soil weakens the "
+                                "underwatering explanation."
+                            ),
+                            provenance="WhyLab v0.1 basil demonstration assumption",
+                            rationale=(
+                                "Demonstration threshold, not a universal "
+                                "botanical rule."
+                            ),
+                        ),
+                    ],
                 ),
                 HypothesisDraft(
                     claim="Excess water is causing root stress",
@@ -66,6 +105,40 @@ class BasilQuestionInterpreter:
                     confounders=[
                         "root_damage",
                         "recent_repottings",
+                    ],
+                    evidence_rules=[
+                        EvidenceRule(
+                            variable="soil_moisture",
+                            operator=ComparisonOperator.GTE,
+                            value=60,
+                            unit="percent",
+                            effect=EvidenceEffect.SUPPORTS,
+                            reason=(
+                                "Persistently moist soil is consistent with "
+                                "excess water and possible root stress."
+                            ),
+                            provenance="WhyLab v0.1 basil demonstration assumption",
+                            rationale=(
+                                "Demonstration threshold, not a universal "
+                                "botanical rule."
+                            ),
+                        ),
+                        EvidenceRule(
+                            variable="soil_moisture",
+                            operator=ComparisonOperator.LTE,
+                            value=30,
+                            unit="percent",
+                            effect=EvidenceEffect.CONTRADICTS,
+                            reason=(
+                                "Low soil moisture weakens an excess-water "
+                                "explanation."
+                            ),
+                            provenance="WhyLab v0.1 basil demonstration assumption",
+                            rationale=(
+                                "Demonstration threshold, not a universal "
+                                "botanical rule."
+                            ),
+                        ),
                     ],
                 ),
                 HypothesisDraft(

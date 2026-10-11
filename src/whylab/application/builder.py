@@ -2,7 +2,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from whylab.domain.models import Hypothesis, Investigation
+from whylab.domain.models import EvidenceRule, Hypothesis, Investigation
 
 
 class HypothesisDraft(BaseModel):
@@ -15,6 +15,7 @@ class HypothesisDraft(BaseModel):
     falsifiers: list[str] = Field(default_factory=list)
     confounders: list[str] = Field(default_factory=list)
     uncertainties: list[str] = Field(default_factory=list)
+    evidence_rules: list[EvidenceRule] = Field(default_factory=list)
 
 
 class InvestigationDraft(BaseModel):
@@ -56,6 +57,7 @@ class InvestigationBuilder:
                 falsifiers=hypothesis.falsifiers,
                 confounders=hypothesis.confounders,
                 uncertainties=hypothesis.uncertainties,
+                evidence_rules=hypothesis.evidence_rules,
             )
             for index, hypothesis in enumerate(
                 draft.hypotheses,

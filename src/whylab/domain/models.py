@@ -13,6 +13,37 @@ class EpistemicState(StrEnum):
     CONTRADICTED = "contradicted"
 
 
+class ComparisonOperator(StrEnum):
+    """Deterministic comparison used by an evidence rule."""
+
+    LT = "<"
+    LTE = "<="
+    GT = ">"
+    GTE = ">="
+    EQ = "=="
+    NEQ = "!="
+
+
+class EvidenceEffect(StrEnum):
+    """How a satisfied evidence rule affects a hypothesis."""
+
+    SUPPORTS = "supports"
+    CONTRADICTS = "contradicts"
+
+
+class EvidenceRule(BaseModel):
+    """Machine-readable criterion connecting an observation to a hypothesis."""
+
+    variable: str
+    operator: ComparisonOperator
+    value: str | int | float | bool
+    unit: str | None = None
+    effect: EvidenceEffect
+    reason: str
+    provenance: str = "investigation_assumption"
+    rationale: str | None = None
+
+
 class Hypothesis(BaseModel):
     """A falsifiable candidate explanation within an investigation."""
 
@@ -26,6 +57,7 @@ class Hypothesis(BaseModel):
     falsifiers: list[str] = Field(default_factory=list)
     confounders: list[str] = Field(default_factory=list)
     uncertainties: list[str] = Field(default_factory=list)
+    evidence_rules: list[EvidenceRule] = Field(default_factory=list)
 
 
 class Observation(BaseModel):
