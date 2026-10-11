@@ -1,12 +1,11 @@
 from collections.abc import Callable
-from collections.abc import Callable
 from pathlib import Path
 
 from mcp.server import MCPServer
 
 from whylab.application.builder import InvestigationBuilder
 from whylab.application.service import WhyLabService
-from whylab.interpreters.basil import BasilQuestionInterpreter
+from whylab.interpreters.configured import create_default_interpreter
 from whylab.storage.sqlite import InvestigationStore
 from whylab.tools.facade import WhyLabTools
 
@@ -23,7 +22,7 @@ def create_mcp_server(
     )
 
     builder = InvestigationBuilder(
-        interpreter=BasilQuestionInterpreter(),
+        interpreter=create_default_interpreter(),
     )
 
     service = WhyLabService(

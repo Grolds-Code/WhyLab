@@ -7,10 +7,8 @@ from pydantic import BaseModel
 from whylab.application.builder import InvestigationBuilder
 from whylab.application.service import WhyLabService
 from whylab.domain.models import Experiment, Investigation, Observation
-from whylab.interpreters.basil import (
-    BasilQuestionInterpreter,
-    UnsupportedQuestionError,
-)
+from whylab.interpreters.basil import UnsupportedQuestionError
+from whylab.interpreters.configured import create_default_interpreter
 from whylab.reasoning.report import EvidenceReport
 from whylab.storage.sqlite import InvestigationStore
 
@@ -35,7 +33,7 @@ def create_app(
     )
 
     configured_builder = builder or InvestigationBuilder(
-        interpreter=BasilQuestionInterpreter(),
+        interpreter=create_default_interpreter(),
     )
 
     service = WhyLabService(
