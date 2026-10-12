@@ -6,6 +6,19 @@ export type EpistemicState =
   | 'known'
   | 'contradicted'
 
+export type EvidenceEffect = 'supports' | 'contradicts'
+
+export interface EvidenceRule {
+  variable: string
+  operator: '<' | '<=' | '>' | '>=' | '==' | '!='
+  value: string | number | boolean
+  unit: string | null
+  effect: EvidenceEffect
+  reason: string
+  provenance: string
+  rationale: string | null
+}
+
 export interface Hypothesis {
   id: string
   claim: string
@@ -16,6 +29,7 @@ export interface Hypothesis {
   falsifiers: string[]
   confounders: string[]
   uncertainties: string[]
+  evidence_rules: EvidenceRule[]
 }
 
 export interface Observation {

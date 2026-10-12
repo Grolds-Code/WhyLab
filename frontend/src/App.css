@@ -995,12 +995,13 @@
 .observation-control {
   margin-top: 15px;
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) auto auto;
+  grid-template-columns: minmax(150px, 1.15fr) minmax(120px, 1fr) auto auto;
   align-items: center;
   gap: 8px;
 }
 
-.observation-control input {
+.observation-control input,
+.observation-control select {
   min-width: 0;
   width: 100%;
   height: 38px;
@@ -1011,6 +1012,14 @@
   background: rgba(255, 255, 255, 0.035);
   font: inherit;
   font-size: 12px;
+}
+
+.observation-control select {
+  cursor: pointer;
+}
+
+.observation-control select option {
+  color: #171820;
 }
 
 .observation-unit {
@@ -1040,7 +1049,12 @@
   }
 
   .observation-control {
-    grid-template-columns: minmax(70px, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .observation-control select,
+  .observation-control input {
+    grid-column: 1 / -1;
   }
 
   .observation-control .primary-button {

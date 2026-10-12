@@ -94,7 +94,8 @@ function App() {
     useState<Investigation | null>(null)
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [observationValue, setObservationValue] = useState('67')
+  const [observationVariable, setObservationVariable] = useState('')
+  const [observationValue, setObservationValue] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [observationError, setObservationError] = useState<string | null>(null)
   const [nextTest, setNextTest] = useState<Experiment | null>(null)
@@ -174,6 +175,8 @@ function App() {
     try {
       const created = await startInvestigation(trimmedQuestion)
       setInvestigation(created)
+      setObservationVariable(created.variables[0] ?? '')
+      setObservationValue('')
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -194,17 +197,57 @@ function App() {
       return
     }
 
-    const numericValue = Number(observationValue)
+    const trimmedValue = observationValue.trim()
 
-    if (
-      !Number.isFinite(numericValue) ||
-      numericValue < 0 ||
-      numericValue > 100
-    ) {
-      setObservationError(
-        'Enter a soil-moisture value between 0 and 100 percent.',
-      )
+    if (!observationVariable || !trimmedValue) {
+      setObservationError('Choose a variable and enter an observation.')
       return
+    }
+
+    const matchingRules = investigation.hypotheses.flatMap(
+      (hypothesis) =>
+        hypothesis.evidence_rules.filter(
+          (rule) => rule.variable === observationVariable,
+        ),
+    )
+
+    const unit =
+      matchingRules.find((rule) => rule.unit)?.unit ?? null
+
+    const expectsNumber = matchingRules.some(
+      (rule) =>
+        typeof rule.value === 'number' ||
+        ['<', '<=', '>', '>='].includes(rule.operator),
+    )
+
+    const expectsBoolean =
+      !expectsNumber &&
+      matchingRules.some((rule) => typeof rule.value === 'boolean')
+
+    let parsedValue: string | number | boolean = trimmedValue
+
+    if (expectsNumber) {
+      const numericValue = Number(trimmedValue)
+
+      if (!Number.isFinite(numericValue)) {
+        setObservationError(
+          `Enter a numeric value for ${observationVariable}.`,
+        )
+        return
+      }
+
+      parsedValue = numericValue
+    } else if (expectsBoolean) {
+      const normalized = trimmedValue.toLowerCase()
+
+      if (normalized !== 'true' && normalized !== 'false') {
+        setObservationError(
+          `Enter true or false for ${observationVariable}.`,
+        )
+        return
+      }
+
+      parsedValue = normalized === 'true'
     }
 
     setIsRecording(true)
@@ -213,9 +256,9 @@ function App() {
     try {
       const updated = await recordObservation(
         investigation.id,
-        'soil_moisture',
-        numericValue,
-        'percent',
+        observationVariable,
+        parsedValue,
+        unit,
       )
 
       setInvestigation(updated)
@@ -260,7 +303,8 @@ function App() {
     setInvestigation(null)
     setError(null)
     setObservationError(null)
-    setObservationValue('67')
+    setObservationVariable('')
+    setObservationValue('')
     setNextTest(null)
     setNextTestError(null)
     setEvidenceReport(null)
@@ -268,6 +312,29 @@ function App() {
     setActiveView('investigation')
     setQuestion(DEMO_QUESTION)
   }
+
+  const observationRules =
+    investigation?.hypotheses.flatMap((hypothesis) =>
+      hypothesis.evidence_rules.filter(
+        (rule) => rule.variable === observationVariable,
+      ),
+    ) ?? []
+
+  const observationUnit =
+    observationRules.find((rule) => rule.unit)?.unit ?? null
+
+  const observationExpectsNumber = observationRules.some(
+    (rule) =>
+      typeof rule.value === 'number' ||
+      ['<', '<=', '>', '>='].includes(rule.operator),
+  )
+
+  const observationLabel = observationVariable
+    ? observationVariable
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    : 'Observation'
 
   return (
     <div className="app-shell">
@@ -411,7 +478,7 @@ function App() {
 
                 <div className="question-actions">
                   <span className="scope-note">
-                    v0.1 supports basil-wilting investigations
+                    WhyLab can investigate testable causal questions across domains
                   </span>
 
                   <button
@@ -753,33 +820,70 @@ function App() {
                 <div className="observation-heading">
                   <div>
                     <span className="card-label">Observation</span>
-                    <strong>Soil moisture</strong>
+                    <strong>{observationLabel}</strong>
                   </div>
 
                   <span className="observation-variable">
-                    soil_moisture
+                    {observationVariable || 'Choose a variable'}
                   </span>
                 </div>
 
                 <div className="observation-control">
+                  <select
+                    aria-label="Observation variable"
+                    value={observationVariable}
+                    onChange={(event) => {
+                      setObservationVariable(event.target.value)
+                      setObservationValue('')
+                      setObservationError(null)
+                    }}
+                    disabled={isRecording}
+                  >
+                    <option value="">Choose variable</option>
+                    {investigation.variables.map((variable) => (
+                      <option key={variable} value={variable}>
+                        {variable
+                          .split('_')
+                          .map(
+                            (word) =>
+                              word.charAt(0).toUpperCase() +
+                              word.slice(1),
+                          )
+                          .join(' ')}
+                      </option>
+                    ))}
+                  </select>
+
                   <input
-                    aria-label="Soil moisture percentage"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
+                    aria-label={`Observation value for ${observationLabel}`}
+                    type={observationExpectsNumber ? 'number' : 'text'}
+                    step={observationExpectsNumber ? 'any' : undefined}
+                    placeholder={
+                      observationExpectsNumber
+                        ? 'Enter measured value'
+                        : 'Enter observed value'
+                    }
                     value={observationValue}
                     onChange={(event) =>
                       setObservationValue(event.target.value)
                     }
-                    disabled={isRecording}
+                    disabled={isRecording || !observationVariable}
                   />
-                  <span className="observation-unit">%</span>
+
+                  {observationUnit && (
+                    <span className="observation-unit">
+                      {observationUnit}
+                    </span>
+                  )}
 
                   <button
                     className="primary-button"
                     type="submit"
-                    disabled={isRecording || !observationValue}
+                    disabled={
+                      isRecording ||
+                      !observationVariable ||
+                      !observationValue.trim()
+                    }
                   >
                     {isRecording ? (
                       <>
