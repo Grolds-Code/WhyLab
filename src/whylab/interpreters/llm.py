@@ -188,6 +188,11 @@ class LLMQuestionInterpreter:
         hypothesis_schema["properties"]["evidence_rules"]["minItems"] = 2
         hypothesis_schema["properties"]["evidence_rules"]["maxItems"] = 3
 
+        evidence_rule_schema = schema["$defs"]["EvidenceRule"]
+        evidence_rule_schema["properties"]["value"] = {
+            "type": "number",
+        }
+
         messages = [
             {
                 "role": "system",
