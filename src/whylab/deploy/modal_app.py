@@ -136,6 +136,9 @@ app = modal.App(APP_NAME)
     volumes={
         VOLUME_MOUNT_PATH: volume,
     },
+    secrets=[
+        modal.Secret.from_name("whylab-llm"),
+    ],
     max_containers=1,
 )
 @modal.concurrent(max_inputs=1)
