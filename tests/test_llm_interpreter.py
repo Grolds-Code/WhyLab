@@ -11,6 +11,7 @@ def test_llm_interpreter_builds_unseen_investigation():
         "variables": [
             "battery_health",
             "background_power_usage",
+            "screen_brightness_percent",
         ],
         "confounders": [
             "screen_brightness",
@@ -47,6 +48,21 @@ def test_llm_interpreter_builds_unseen_investigation():
                             "This threshold is an investigation assumption, "
                             "not a universal battery-health boundary."
                         ),
+                    },
+                    {
+                        "variable": "battery_health",
+                        "operator": ">=",
+                        "value": 90,
+                        "unit": "percent",
+                        "effect": "contradicts",
+                        "reason": (
+                            "High measured battery health weakens substantial "
+                            "battery degradation."
+                        ),
+                        "provenance": "model_generated_assumption",
+                        "rationale": (
+                            "This threshold is an investigation assumption."
+                        ),
                     }
                 ],
             },
@@ -62,7 +78,38 @@ def test_llm_interpreter_builds_unseen_investigation():
                     "screen_brightness"
                 ],
                 "uncertainties": [],
-                "evidence_rules": [],
+                "evidence_rules": [
+                    {
+                        "variable": "background_power_usage",
+                        "operator": ">=",
+                        "value": 5,
+                        "unit": "watts",
+                        "effect": "supports",
+                        "reason": (
+                            "Elevated background power usage supports excessive "
+                            "background software activity."
+                        ),
+                        "provenance": "model_generated_assumption",
+                        "rationale": (
+                            "This threshold is an investigation assumption."
+                        ),
+                    },
+                    {
+                        "variable": "background_power_usage",
+                        "operator": "<=",
+                        "value": 1,
+                        "unit": "watts",
+                        "effect": "contradicts",
+                        "reason": (
+                            "Low background power usage weakens the background "
+                            "software explanation."
+                        ),
+                        "provenance": "model_generated_assumption",
+                        "rationale": (
+                            "This threshold is an investigation assumption."
+                        ),
+                    }
+                ],
             },
             {
                 "claim": "Display power draw is unusually high",
@@ -76,7 +123,38 @@ def test_llm_interpreter_builds_unseen_investigation():
                     "background_power_usage"
                 ],
                 "uncertainties": [],
-                "evidence_rules": [],
+                "evidence_rules": [
+                    {
+                        "variable": "screen_brightness_percent",
+                        "operator": ">=",
+                        "value": 80,
+                        "unit": "percent",
+                        "effect": "supports",
+                        "reason": (
+                            "High screen brightness supports elevated display "
+                            "power draw."
+                        ),
+                        "provenance": "model_generated_assumption",
+                        "rationale": (
+                            "This threshold is an investigation assumption."
+                        ),
+                    },
+                    {
+                        "variable": "screen_brightness_percent",
+                        "operator": "<=",
+                        "value": 30,
+                        "unit": "percent",
+                        "effect": "contradicts",
+                        "reason": (
+                            "Low screen brightness weakens elevated display "
+                            "power draw as the primary explanation."
+                        ),
+                        "provenance": "model_generated_assumption",
+                        "rationale": (
+                            "This threshold is an investigation assumption."
+                        ),
+                    }
+                ],
             },
         ],
     }
@@ -88,7 +166,12 @@ def test_llm_interpreter_builds_unseen_investigation():
         assert body["messages"][-1]["content"] == (
             "Why does my laptop battery drain so quickly?"
         )
-        assert body["response_format"]["type"] == "json_schema"
+        assert body["tools"][0]["function"]["name"] == (
+            "create_investigation_draft"
+        )
+        assert body["tool_choice"]["function"]["name"] == (
+            "create_investigation_draft"
+        )
         assert request.headers["Authorization"] == "Bearer test-key"
 
         return httpx.Response(
@@ -97,7 +180,14 @@ def test_llm_interpreter_builds_unseen_investigation():
                 "choices": [
                     {
                         "message": {
-                            "content": json.dumps(draft_payload)
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "create_investigation_draft",
+                                        "arguments": json.dumps(draft_payload),
+                                    }
+                                }
+                            ]
                         }
                     }
                 ]

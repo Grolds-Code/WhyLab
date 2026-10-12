@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class EpistemicState(StrEnum):
@@ -42,6 +42,26 @@ class EvidenceRule(BaseModel):
     reason: str
     provenance: str = "investigation_assumption"
     rationale: str | None = None
+
+    @model_validator(mode="after")
+    def validate_comparison_value(self):
+        ordered = {
+            ComparisonOperator.LT,
+            ComparisonOperator.LTE,
+            ComparisonOperator.GT,
+            ComparisonOperator.GTE,
+        }
+
+        if self.operator in ordered:
+            if (
+                isinstance(self.value, bool)
+                or not isinstance(self.value, (int, float))
+            ):
+                raise ValueError(
+                    "Ordered evidence-rule comparisons require a numeric value."
+                )
+
+        return self
 
 
 class Hypothesis(BaseModel):

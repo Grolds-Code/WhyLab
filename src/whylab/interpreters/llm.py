@@ -16,8 +16,16 @@ Requirements:
 - Produce 3 to 5 genuinely competing, falsifiable hypotheses.
 - Use concise machine-readable variable names in snake_case.
 - Give each hypothesis predictions, falsifiers, confounders, and uncertainties.
-- Add evidence_rules only when an observation can be evaluated by an explicit
-  comparison against a value.
+- Every hypothesis must include 2 to 3 evidence_rules that a user could
+  realistically evaluate.
+- Every hypothesis must have at least one rule with effect="supports" and at
+  least one rule with effect="contradicts". This is required for falsification.
+- Evidence rules must use variables listed in the investigation's variables.
+- Prefer numeric comparisons when a measurable quantity exists.
+- When numeric thresholds are not appropriate, use boolean or categorical
+  equality comparisons.
+- If you introduce a threshold or criterion rather than retrieving an
+  established one, mark it explicitly as an investigation assumption.
 - Never present generated thresholds as universal facts.
 - For model-proposed thresholds or criteria, use
   provenance="model_generated_assumption" and explain the assumption in rationale.
@@ -31,6 +39,43 @@ Requirements:
 
 class LLMInterpreterError(RuntimeError):
     """Raised when the external interpreter cannot produce a valid draft."""
+
+
+def _validate_generated_draft(draft: InvestigationDraft) -> None:
+    """Reject structurally valid but scientifically unusable generated drafts."""
+
+    if not 3 <= len(draft.hypotheses) <= 5:
+        raise LLMInterpreterError(
+            "Generated investigation must contain 3 to 5 hypotheses."
+        )
+
+    if not draft.variables:
+        raise LLMInterpreterError(
+            "Generated investigation must contain measurable variables."
+        )
+
+    allowed_variables = set(draft.variables)
+
+    for hypothesis in draft.hypotheses:
+        if not 1 <= len(hypothesis.evidence_rules) <= 3:
+            raise LLMInterpreterError(
+                "Each generated hypothesis must contain 1 to 3 evidence rules."
+            )
+
+        effects = {rule.effect.value for rule in hypothesis.evidence_rules}
+
+        if "supports" not in effects or "contradicts" not in effects:
+            raise LLMInterpreterError(
+                "Each generated hypothesis must include at least one supporting "
+                "rule and at least one contradicting rule."
+            )
+
+        for rule in hypothesis.evidence_rules:
+            if rule.variable not in allowed_variables:
+                raise LLMInterpreterError(
+                    f"Evidence rule variable {rule.variable!r} is not declared "
+                    "in the investigation variables."
+                )
 
 
 class LLMQuestionInterpreter:
@@ -50,27 +95,36 @@ class LLMQuestionInterpreter:
         self.client = client
 
     def interpret(self, question: str) -> InvestigationDraft:
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": question,
-                },
-            ],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "investigation_draft",
-                    "strict": True,
-                    "schema": InvestigationDraft.model_json_schema(),
-                },
+        schema = InvestigationDraft.model_json_schema()
+
+        schema["properties"]["hypotheses"]["minItems"] = 3
+        schema["properties"]["hypotheses"]["maxItems"] = 5
+        schema["properties"]["variables"]["minItems"] = 1
+
+        hypothesis_schema = schema["$defs"]["HypothesisDraft"]
+        hypothesis_schema["properties"]["evidence_rules"]["minItems"] = 2
+        hypothesis_schema["properties"]["evidence_rules"]["maxItems"] = 3
+
+        messages = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
             },
-            "temperature": 0.2,
+            {
+                "role": "user",
+                "content": question,
+            },
+        ]
+
+        tool = {
+            "type": "function",
+            "function": {
+                "name": "create_investigation_draft",
+                "description": (
+                    "Create the structured scientific investigation for WhyLab."
+                ),
+                "parameters": schema,
+            },
         }
 
         headers = {
@@ -78,41 +132,97 @@ class LLMQuestionInterpreter:
             "Content-Type": "application/json",
         }
 
-        try:
-            if self.client is not None:
-                response = self.client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                )
-            else:
-                response = httpx.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=45.0,
+        for attempt in range(2):
+            payload = {
+                "model": self.model,
+                "provider": {
+                    "require_parameters": True,
+                },
+                "messages": messages,
+                "tools": [tool],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {
+                        "name": "create_investigation_draft",
+                    },
+                },
+                "temperature": 0.2,
+            }
+
+            try:
+                if self.client is not None:
+                    response = self.client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                    )
+                else:
+                    response = httpx.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=45.0,
+                    )
+
+                response.raise_for_status()
+                body = response.json()
+
+                arguments = (
+                    body["choices"][0]["message"]["tool_calls"][0]
+                    ["function"]["arguments"]
                 )
 
-            response.raise_for_status()
-            body = response.json()
-            content = body["choices"][0]["message"]["content"]
+                if isinstance(arguments, str):
+                    parsed = json.loads(arguments)
+                elif isinstance(arguments, dict):
+                    parsed = arguments
+                else:
+                    raise LLMInterpreterError(
+                        "Interpreter returned invalid tool arguments."
+                    )
 
-            if not isinstance(content, str):
+                draft = InvestigationDraft.model_validate(parsed)
+                _validate_generated_draft(draft)
+                return draft
+
+            except httpx.HTTPError as exc:
                 raise LLMInterpreterError(
-                    "Interpreter returned an unexpected response format."
+                    "The investigation interpreter request failed."
+                ) from exc
+
+            except (
+                LLMInterpreterError,
+                KeyError,
+                IndexError,
+                TypeError,
+                json.JSONDecodeError,
+                ValidationError,
+            ) as exc:
+                if isinstance(exc, LLMInterpreterError):
+                    failure = exc
+                else:
+                    failure = LLMInterpreterError(
+                        f"Generated tool output failed validation: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+
+                if attempt == 1:
+                    raise failure from exc
+
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Your previous investigation was rejected: {failure}. "
+                            "Call create_investigation_draft again. It MUST contain "
+                            "3 to 5 competing hypotheses, at least one measurable "
+                            "top-level variable, and 1 to 3 evidence_rules for every "
+                            "hypothesis. Every rule variable must exactly match a "
+                            "top-level variable."
+                        ),
+                    }
                 )
 
-            parsed = json.loads(content)
-            return InvestigationDraft.model_validate(parsed)
-
-        except (
-            httpx.HTTPError,
-            KeyError,
-            IndexError,
-            TypeError,
-            json.JSONDecodeError,
-            ValidationError,
-        ) as exc:
-            raise LLMInterpreterError(
-                "The investigation interpreter could not produce a valid draft."
-            ) from exc
+        raise LLMInterpreterError(
+            "The investigation interpreter exhausted its retry limit."
+        )
