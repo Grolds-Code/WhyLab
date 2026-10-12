@@ -149,12 +149,20 @@ def _recommend_generic_test(
         for hypothesis_id in hypothesis_rules
     ]
 
-    return Experiment(
-        question=(
+    if len(claims) == 1:
+        question = (
+            f"What does measuring {variable} tell us about "
+            f"{claims[0]}?"
+        )
+    else:
+        question = (
             f"Can measuring {variable} help distinguish between "
             + "; ".join(claims)
             + "?"
-        ),
+        )
+
+    return Experiment(
+        question=question,
         target_hypotheses=list(hypothesis_rules),
         observations_required=[
             f"{variable}{f' ({unit})' if unit else ''}"

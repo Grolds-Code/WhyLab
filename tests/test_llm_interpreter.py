@@ -2,7 +2,10 @@ import json
 
 import httpx
 
-from whylab.interpreters.llm import LLMQuestionInterpreter
+from whylab.interpreters.llm import (
+    LLMQuestionInterpreter,
+    _normalize_generated_rule_values,
+)
 
 
 def test_llm_interpreter_builds_unseen_investigation():
@@ -211,3 +214,43 @@ def test_llm_interpreter_builds_unseen_investigation():
     assert len(draft.hypotheses) == 3
     assert draft.hypotheses[0].evidence_rules[0].variable == "battery_health"
     assert draft.hypotheses[0].evidence_rules[0].effect.value == "supports"
+
+
+
+def test_normalizes_unambiguous_numeric_rule_values():
+    payload = {
+        "hypotheses": [
+            {
+                "evidence_rules": [
+                    {
+                        "operator": "<",
+                        "value": "20 Mbps",
+                        "unit": None,
+                    },
+                    {
+                        "operator": ">=",
+                        "value": "70%",
+                        "unit": None,
+                    },
+                    {
+                        "operator": "<",
+                        "value": "about 20 Mbps",
+                        "unit": None,
+                    },
+                ]
+            }
+        ]
+    }
+
+    normalized = _normalize_generated_rule_values(payload)
+    rules = normalized["hypotheses"][0]["evidence_rules"]
+
+    assert rules[0]["value"] == 20
+    assert rules[0]["unit"] == "Mbps"
+
+    assert rules[1]["value"] == 70
+    assert rules[1]["unit"] == "percent"
+
+    # Ambiguous prose must not be guessed or silently coerced.
+    assert rules[2]["value"] == "about 20 Mbps"
+    assert rules[2]["unit"] is None
