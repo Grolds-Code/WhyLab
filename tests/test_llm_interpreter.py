@@ -254,3 +254,43 @@ def test_normalizes_unambiguous_numeric_rule_values():
     # Ambiguous prose must not be guessed or silently coerced.
     assert rules[2]["value"] == "about 20 Mbps"
     assert rules[2]["unit"] is None
+
+
+
+def test_normalizes_stringified_structured_arrays():
+    payload = {
+        "hypotheses": json.dumps(
+            [
+                {
+                    "claim": "Evening congestion",
+                    "evidence_rules": json.dumps(
+                        [
+                            {
+                                "variable": "wifi_speed_mbps",
+                                "operator": "<",
+                                "value": "20 Mbps",
+                                "unit": None,
+                                "effect": "supports",
+                                "reason": "Low speed supports congestion.",
+                                "provenance": "model_generated_assumption",
+                                "rationale": "Investigation assumption.",
+                            }
+                        ]
+                    ),
+                }
+            ]
+        )
+    }
+
+    normalized = _normalize_generated_rule_values(payload)
+
+    assert isinstance(normalized["hypotheses"], list)
+    assert isinstance(
+        normalized["hypotheses"][0]["evidence_rules"],
+        list,
+    )
+
+    rule = normalized["hypotheses"][0]["evidence_rules"][0]
+
+    assert rule["value"] == 20
+    assert rule["unit"] == "Mbps"

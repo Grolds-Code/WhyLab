@@ -54,6 +54,16 @@ def _normalize_generated_rule_values(payload: dict) -> dict:
 
     hypotheses = payload.get("hypotheses")
 
+    if isinstance(hypotheses, str):
+        try:
+            decoded_hypotheses = json.loads(hypotheses)
+        except json.JSONDecodeError:
+            decoded_hypotheses = None
+
+        if isinstance(decoded_hypotheses, list):
+            payload["hypotheses"] = decoded_hypotheses
+            hypotheses = decoded_hypotheses
+
     if not isinstance(hypotheses, list):
         return payload
 
@@ -62,6 +72,16 @@ def _normalize_generated_rule_values(payload: dict) -> dict:
             continue
 
         rules = hypothesis.get("evidence_rules")
+
+        if isinstance(rules, str):
+            try:
+                decoded_rules = json.loads(rules)
+            except json.JSONDecodeError:
+                decoded_rules = None
+
+            if isinstance(decoded_rules, list):
+                hypothesis["evidence_rules"] = decoded_rules
+                rules = decoded_rules
 
         if not isinstance(rules, list):
             continue
