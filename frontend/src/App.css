@@ -1273,6 +1273,7 @@
 }
 
 .agent-turn p {
+  grid-column: 2;
   margin: 0;
   color: #c4c3cc;
   font-size: 13px;
@@ -1303,6 +1304,10 @@
   .agent-turn {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .agent-turn p {
+    grid-column: 1;
   }
 
   .agent-grounding-badge {
