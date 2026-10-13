@@ -14,13 +14,14 @@ Convert a new causal or investigable question into a rigorous scientific
 investigation draft.
 
 Requirements:
-- Produce 3 to 5 genuinely competing, falsifiable hypotheses.
+- Produce exactly 4 genuinely competing, falsifiable hypotheses.
 - Use concise machine-readable variable names in snake_case.
 - Give each hypothesis predictions, falsifiers, confounders, and uncertainties.
-- Every hypothesis must include 2 to 3 evidence_rules that a user could
-  realistically evaluate.
-- Every hypothesis must have at least one rule with effect="supports" and at
-  least one rule with effect="contradicts". This is required for falsification.
+- Every hypothesis must include exactly 2 concise evidence_rules that a user
+  could realistically evaluate: one with effect="supports" and one with
+  effect="contradicts".
+- The supporting and contradicting rules must use genuinely different
+  predicates so one observation cannot trigger both effects.
 - Evidence rules must use variables listed in the investigation's variables.
 - Prefer numeric comparisons when a measurable quantity exists.
 - When numeric thresholds are not appropriate, use boolean or categorical
@@ -33,6 +34,9 @@ Requirements:
 - Evidence rules may SUPPORT or CONTRADICT hypotheses, but must never mark a
   hypothesis KNOWN.
 - Prefer observations a normal user can realistically obtain.
+- Keep claims, predictions, falsifiers, reasons, rationales, confounders, and
+  uncertainties concise. Do not add explanatory prose beyond what the schema
+  requires.
 - Do not smuggle epistemic conclusions into the hypothesis text.
 - The output must conform exactly to the supplied JSON schema.
 """.strip()
@@ -208,7 +212,7 @@ class LLMQuestionInterpreter:
 
         hypothesis_schema = schema["$defs"]["HypothesisDraft"]
         hypothesis_schema["properties"]["evidence_rules"]["minItems"] = 2
-        hypothesis_schema["properties"]["evidence_rules"]["maxItems"] = 3
+        hypothesis_schema["properties"]["evidence_rules"]["maxItems"] = 2
 
         evidence_rule_schema = schema["$defs"]["EvidenceRule"]
         evidence_rule_schema["properties"]["value"] = {
@@ -327,7 +331,7 @@ class LLMQuestionInterpreter:
                             f"Your previous investigation was rejected: {failure}. "
                             "Call create_investigation_draft again. It MUST contain "
                             "exactly 4 competing hypotheses, at least one measurable "
-                            "top-level variable, and 2 to 3 evidence_rules for every "
+                            "top-level variable, and exactly 2 evidence_rules for every "
                             "hypothesis. Every rule variable must exactly match a "
                             "top-level variable. Supporting and contradicting "
                             "rules for the same hypothesis MUST use genuinely "
