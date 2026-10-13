@@ -91,15 +91,54 @@ def _recommend_generic_test(
     if not rules_by_variable:
         return None
 
+    def variable_score(
+        item: tuple[str, dict[str, list]],
+    ) -> tuple[float, int, int, int]:
+        _, hypothesis_rules = item
+
+        effect_sets = {
+            hypothesis_id: {
+                rule.effect.value
+                for rule in rules
+            }
+            for hypothesis_id, rules in hypothesis_rules.items()
+        }
+
+        bidirectional_count = sum(
+            {"supports", "contradicts"} <= effects
+            for effects in effect_sets.values()
+        )
+
+        coverage = len(hypothesis_rules)
+
+        falsification_ratio = (
+            bidirectional_count / coverage
+            if coverage
+            else 0.0
+        )
+
+        distinct_effect_patterns = len(
+            {
+                tuple(sorted(effects))
+                for effects in effect_sets.values()
+            }
+        )
+
+        total_rules = sum(
+            len(rules)
+            for rules in hypothesis_rules.values()
+        )
+
+        return (
+            falsification_ratio,
+            distinct_effect_patterns,
+            coverage if falsification_ratio > 0 else -coverage,
+            total_rules,
+        )
+
     variable, hypothesis_rules = max(
         rules_by_variable.items(),
-        key=lambda item: (
-            len(item[1]),
-            sum(
-                len(rules)
-                for rules in item[1].values()
-            ),
-        ),
+        key=variable_score,
     )
 
     hypothesis_lookup = {

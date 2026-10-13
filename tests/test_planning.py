@@ -136,3 +136,87 @@ def test_generic_planner_selects_discriminating_measurement():
     assert set(experiment.target_hypotheses) == {"H1", "H2"}
     assert "H1" in experiment.predicted_results
     assert "H2" in experiment.predicted_results
+
+
+def test_generic_planner_prefers_falsifiable_measurement_over_shared_symptom():
+    from whylab.domain.models import (
+        ComparisonOperator,
+        EvidenceEffect,
+        EvidenceRule,
+    )
+
+    investigation = Investigation(
+        id="INV-WIFI-PLAN-001",
+        question="Why does my Wi-Fi slow down every evening?",
+        domain="home_networking",
+        hypotheses=[
+            Hypothesis(
+                id="H1",
+                claim="The ISP throttles evening traffic",
+                evidence_rules=[
+                    EvidenceRule(
+                        variable="evening_speed_ratio",
+                        operator=ComparisonOperator.LT,
+                        value=0.7,
+                        effect=EvidenceEffect.SUPPORTS,
+                        reason="A large evening speed drop is consistent with throttling.",
+                    ),
+                    EvidenceRule(
+                        variable="isp_throttling_active",
+                        operator=ComparisonOperator.EQ,
+                        value=1,
+                        effect=EvidenceEffect.SUPPORTS,
+                        reason="Detected throttling supports the ISP hypothesis.",
+                    ),
+                    EvidenceRule(
+                        variable="isp_throttling_active",
+                        operator=ComparisonOperator.EQ,
+                        value=0,
+                        effect=EvidenceEffect.CONTRADICTS,
+                        reason="No detected throttling weakens the ISP hypothesis.",
+                    ),
+                ],
+            ),
+            Hypothesis(
+                id="H2",
+                claim="Too many evening devices cause congestion",
+                evidence_rules=[
+                    EvidenceRule(
+                        variable="evening_speed_ratio",
+                        operator=ComparisonOperator.LT,
+                        value=0.7,
+                        effect=EvidenceEffect.SUPPORTS,
+                        reason="A large evening speed drop is consistent with congestion.",
+                    ),
+                    EvidenceRule(
+                        variable="connected_device_count",
+                        operator=ComparisonOperator.GT,
+                        value=15,
+                        effect=EvidenceEffect.SUPPORTS,
+                        reason="Many connected devices support congestion.",
+                    ),
+                    EvidenceRule(
+                        variable="connected_device_count",
+                        operator=ComparisonOperator.LTE,
+                        value=5,
+                        effect=EvidenceEffect.CONTRADICTS,
+                        reason="Few connected devices weaken congestion.",
+                    ),
+                ],
+            ),
+        ],
+        variables=[
+            "evening_speed_ratio",
+            "isp_throttling_active",
+            "connected_device_count",
+        ],
+    )
+
+    experiment = recommend_next_test(investigation)
+
+    assert experiment is not None
+    assert experiment.observations_required == [
+        "isp_throttling_active"
+    ]
+    assert experiment.target_hypotheses == ["H1"]
+    assert "evening_speed_ratio" not in experiment.observations_required
