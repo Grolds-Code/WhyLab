@@ -6,7 +6,7 @@
 
 Instead of responding to real-world questions with a single generated explanation, WhyLab helps users investigate them through competing hypotheses, falsifiable predictions, observations, deterministic evidence updates, and discriminating follow-up experiments.
 
-> **Status:** Working v0.1 production system — public React interface, persistent HTTP API, and MCP service deployed together on Modal, with the end-to-end basil investigation functioning live.
+> **Status:** Working v0.1 production system — public React interface, persistent HTTP API, Streamable HTTP MCP service, generalized causal-question interpretation, deterministic evidence updates, and a judge-facing Alexa+ concept experience grounded in live investigation state.
 
 ## Live Demo
 
@@ -101,13 +101,15 @@ WhyLab v0.1 does **not** automatically assign `KNOWN`.
 
 ---
 
-## v0.1 Demonstration
+## v0.1 Demonstration and Cross-Domain Proof
 
-The first end-to-end investigation is deliberately narrow:
+The original regression case is:
 
 > **"My basil keeps wilting even though I'm watering it. Help me figure out why."**
 
-WhyLab creates three competing hypotheses:
+Basil is no longer special-cased. This original three-hypothesis case is intentionally retained as a compatibility regression, while new generated investigations request four competing hypotheses.
+
+In this regression case, WhyLab uses:
 
 ```text
 H1 — The plant is underwatered
@@ -159,6 +161,15 @@ Duration:
 
 This entire flow is currently implemented and works through both the public browser interface and the deployed MCP service.
 
+WhyLab has also been exercised successfully in production on unseen questions from multiple domains, including:
+
+- laptop battery drain;
+- refrigerator cooling failure;
+- evening website slowdown;
+- plant health.
+
+These tests generated distinct competing hypotheses and measurable next investigations from the live system rather than from demo-specific logic.
+
 ---
 
 ## Why Alexa+
@@ -180,7 +191,7 @@ An Alexa+ experience is a natural interface for:
 - short evidence summaries;
 - guidance toward the next useful experiment.
 
-The current public browser experience demonstrates the real investigation loop end-to-end. An Alexa+-style conversational layer is planned on top of the same WhyLab reasoning tools.
+The current public browser experience demonstrates the real investigation loop end-to-end and includes an Alexa+ concept experience grounded entirely in live WhyLab investigation state. It shows the user's causal question, the current hypothesis-state summary, and the next recommended experiment when available, without claiming to run inside an unreleased Alexa+ runtime.
 
 ---
 
@@ -189,20 +200,21 @@ The current public browser experience demonstrates the real investigation loop e
 ```mermaid
 flowchart TD
     U[User] --> W[Public React Interface]
-    U --> X[Alexa+ Experience - planned]
-
+    W --> C[Alexa+ Concept Experience]
     W --> H[HTTP API]
-    X --> M[MCP Tool Layer]
+
+    X[External MCP Client] --> M[MCP Tool Layer]
 
     H --> A[Application Service]
-    M --> A[Application Service]
+    M --> A
+
     A --> I[Question Interpreter]
     A --> R[Deterministic Reasoning Engine]
-    A --> P[Experiment Planner]
+    A --> P[Falsification-Aware Experiment Planner]
 
-    R --> S[Investigation State]
+    I --> S[Persistent Investigation State]
+    R --> S
     P --> S
-    I --> S
 
     S --> DB[(SQLite)]
     DB --> V[Modal Persistent Volume]
@@ -463,11 +475,12 @@ An investigation should survive beyond a single conversation or runtime instance
 - **React**
 - **Vite**
 - **Modal**
+- **OpenRouter** — free model routing for structured hypothesis generation
 - **pytest**
 - **uv**
 - **GitHub**
 
-The public React interface is live. The next interface milestone is the Alexa+-style conversational demonstration backed by the same real investigation tools and persistent state.
+The public React interface is live and already includes the Alexa+ concept experience backed by the same real investigation state, deterministic evidence engine, and experiment planner.
 
 ---
 
@@ -477,4 +490,4 @@ WhyLab is being built around one central proposition:
 
 > **An AI assistant should not merely generate explanations. It should help a person conduct a better investigation.**
 
-The v0.1 basil workflow is the first proof of that idea.
+The v0.1 production system now demonstrates that idea across multiple unseen causal domains while keeping generated explanations separate from deterministic evidence state.
