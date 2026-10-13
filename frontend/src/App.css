@@ -1199,3 +1199,113 @@
     border-top: 1px solid rgba(255, 255, 255, 0.065);
   }
 }
+
+.agent-experience {
+  margin-top: 34px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(142, 124, 242, 0.2);
+  border-radius: 16px;
+  padding: 22px;
+  background:
+    linear-gradient(145deg, rgba(142, 124, 242, 0.055), transparent 48%),
+    rgba(12, 13, 19, 0.82);
+}
+
+.agent-experience-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 4px;
+}
+
+.agent-experience-heading h2 {
+  margin: 7px 0 0;
+  color: #e2e1e8;
+  font-size: 21px;
+  font-weight: 520;
+  letter-spacing: -0.025em;
+}
+
+.agent-grounding-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #858795;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.agent-turn {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  border-radius: 12px;
+  padding: 15px 17px;
+}
+
+.agent-turn-user {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.agent-turn-whylab {
+  border: 1px solid rgba(142, 124, 242, 0.12);
+  background: rgba(142, 124, 242, 0.035);
+}
+
+.agent-speaker {
+  padding-top: 2px;
+  color: #8e7cf2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.agent-turn-user .agent-speaker {
+  color: #777987;
+}
+
+.agent-turn p {
+  margin: 0;
+  color: #c4c3cc;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.agent-turn p + p {
+  margin-top: 9px;
+  color: #aaa9b5;
+}
+
+.agent-disclosure {
+  margin: 2px 0 0;
+  color: #666876;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .agent-experience {
+    padding: 17px;
+  }
+
+  .agent-experience-heading {
+    flex-direction: column;
+  }
+
+  .agent-turn {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .agent-grounding-badge {
+    align-self: flex-start;
+  }
+}

@@ -296,6 +296,15 @@ class LLMQuestionInterpreter:
                     )
 
                 parsed = _normalize_generated_rule_values(parsed)
+
+                hypotheses = parsed.get("hypotheses")
+
+                if isinstance(hypotheses, list) and len(hypotheses) > 4:
+                    parsed = {
+                        **parsed,
+                        "hypotheses": hypotheses[:4],
+                    }
+
                 draft = InvestigationDraft.model_validate(parsed)
                 _validate_generated_draft(draft)
                 return draft

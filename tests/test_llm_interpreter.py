@@ -404,3 +404,83 @@ def test_rejects_conflicting_effects_for_same_predicate():
         match="same evidence predicate",
     ):
         _validate_generated_draft(draft)
+
+
+def test_interpreter_trims_overgenerated_hypotheses_to_four():
+    draft_payload = {
+        "domain": "home_networking",
+        "variables": ["signal"],
+        "confounders": [],
+        "hypotheses": [
+            {
+                "claim": f"Hypothesis {index}",
+                "predictions": [],
+                "falsifiers": [],
+                "confounders": [],
+                "uncertainties": [],
+                "evidence_rules": [
+                    {
+                        "variable": "signal",
+                        "operator": ">=",
+                        "value": index,
+                        "unit": None,
+                        "effect": "supports",
+                        "reason": f"Signal supports hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                    {
+                        "variable": "signal",
+                        "operator": "<",
+                        "value": index,
+                        "unit": None,
+                        "effect": "contradicts",
+                        "reason": f"Signal contradicts hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                ],
+            }
+            for index in range(1, 7)
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "create_investigation_draft",
+                                        "arguments": json.dumps(draft_payload),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    interpreter = LLMQuestionInterpreter(
+        api_key="test-key",
+        client=client,
+    )
+
+    draft = interpreter.interpret(
+        "Why does my Wi-Fi slow down every evening?"
+    )
+
+    assert len(draft.hypotheses) == 4
+    assert [hypothesis.claim for hypothesis in draft.hypotheses] == [
+        "Hypothesis 1",
+        "Hypothesis 2",
+        "Hypothesis 3",
+        "Hypothesis 4",
+    ]

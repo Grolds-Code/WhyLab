@@ -32,6 +32,14 @@ function WhyLabMark() {
   )
 }
 
+function formatHypothesisIds(ids: string[]) {
+  if (ids.length === 0) return 'none'
+  if (ids.length === 1) return ids[0]
+  if (ids.length === 2) return `${ids[0]} and ${ids[1]}`
+
+  return `${ids.slice(0, -1).join(', ')}, and ${ids.at(-1)}`
+}
+
 function EvidenceGroup({
   title,
   items,
@@ -336,6 +344,43 @@ function App() {
         .join(' ')
     : 'Observation'
 
+  const supportedIds =
+    investigation?.hypotheses
+      .filter((hypothesis) => hypothesis.state === 'supported')
+      .map((hypothesis) => hypothesis.id) ?? []
+
+  const contradictedIds =
+    investigation?.hypotheses
+      .filter((hypothesis) => hypothesis.state === 'contradicted')
+      .map((hypothesis) => hypothesis.id) ?? []
+
+  const openIds =
+    investigation?.hypotheses
+      .filter((hypothesis) => hypothesis.state === 'open')
+      .map((hypothesis) => hypothesis.id) ?? []
+
+  const agentBriefing = investigation
+    ? investigation.observations.length === 0
+      ? `I formed ${investigation.hypotheses.length} competing hypotheses. I am keeping all of them open until evidence starts separating them.`
+      : [
+          supportedIds.length > 0
+            ? `Current evidence supports ${formatHypothesisIds(supportedIds)}.`
+            : 'No hypothesis is supported yet.',
+          contradictedIds.length > 0
+            ? `${formatHypothesisIds(contradictedIds)} ${
+                contradictedIds.length === 1 ? 'is' : 'are'
+              } contradicted.`
+            : null,
+          openIds.length > 0
+            ? `${formatHypothesisIds(openIds)} ${
+                openIds.length === 1 ? 'remains' : 'remain'
+              } open.`
+            : null,
+        ]
+          .filter((item): item is string => item !== null)
+          .join(' ')
+    : ''
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -547,6 +592,46 @@ function App() {
                   <code>{investigation.id.slice(0, 18)}…</code>
                 </div>
               </div>
+            )}
+
+            {activeView === 'investigation' && (
+              <section
+                className="agent-experience"
+                aria-label="Alexa+ concept experience"
+              >
+                <div className="agent-experience-heading">
+                  <div>
+                    <span className="eyebrow">Alexa+ concept experience</span>
+                    <h2>Investigate through conversation.</h2>
+                  </div>
+
+                  <span className="agent-grounding-badge">
+                    Grounded in live investigation state
+                  </span>
+                </div>
+
+                <div className="agent-turn agent-turn-user">
+                  <span className="agent-speaker">You</span>
+                  <p>{investigation.question}</p>
+                </div>
+
+                <div className="agent-turn agent-turn-whylab">
+                  <span className="agent-speaker">WhyLab</span>
+                  <p>{agentBriefing}</p>
+
+                  {investigation.observations.length > 0 && nextTest && (
+                    <p>
+                      Next, I recommend this test: {nextTest.question}
+                    </p>
+                  )}
+                </div>
+
+                <p className="agent-disclosure">
+                  Concept interface for the Alexa+ track. Every hypothesis state
+                  and recommendation shown here comes from WhyLab&apos;s real
+                  reasoning engine.
+                </p>
+              </section>
             )}
 
             <div className="investigation-summary">
