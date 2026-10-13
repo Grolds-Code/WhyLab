@@ -71,6 +71,25 @@ def _normalize_generated_rule_values(payload: dict) -> dict:
     if not isinstance(hypotheses, list):
         return payload
 
+    allowed_hypothesis_fields = {
+        "claim",
+        "predictions",
+        "falsifiers",
+        "confounders",
+        "uncertainties",
+        "evidence_rules",
+    }
+
+    for index, hypothesis in enumerate(hypotheses):
+        if not isinstance(hypothesis, dict):
+            continue
+
+        hypotheses[index] = {
+            key: value
+            for key, value in hypothesis.items()
+            if key in allowed_hypothesis_fields
+        }
+
     for hypothesis in hypotheses:
         if not isinstance(hypothesis, dict):
             continue

@@ -484,3 +484,84 @@ def test_interpreter_trims_overgenerated_hypotheses_to_four():
         "Hypothesis 3",
         "Hypothesis 4",
     ]
+
+
+def test_interpreter_ignores_unknown_hypothesis_fields():
+    draft_payload = {
+        "domain": "consumer_technology",
+        "variables": ["battery_health"],
+        "confounders": [],
+        "hypotheses": [
+            {
+                "claim": f"Hypothesis {index}",
+                "predictions": [],
+                "falsifiers": [],
+                "confounders": [],
+                "uncertainties": [],
+                "contradicts": [
+                    {
+                        "variable": "battery_health",
+                        "note": "Model-added field outside WhyLab's contract.",
+                    }
+                ],
+                "evidence_rules": [
+                    {
+                        "variable": "battery_health",
+                        "operator": "<=",
+                        "value": 60 + index,
+                        "unit": "percent",
+                        "effect": "supports",
+                        "reason": f"Supports hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                    {
+                        "variable": "battery_health",
+                        "operator": ">=",
+                        "value": 90 + index,
+                        "unit": "percent",
+                        "effect": "contradicts",
+                        "reason": f"Contradicts hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                ],
+            }
+            for index in range(1, 5)
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "create_investigation_draft",
+                                        "arguments": json.dumps(draft_payload),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    interpreter = LLMQuestionInterpreter(
+        api_key="test-key",
+        client=client,
+    )
+
+    draft = interpreter.interpret(
+        "Why does my laptop battery drain quickly?"
+    )
+
+    assert len(draft.hypotheses) == 4
+    assert draft.hypotheses[0].claim == "Hypothesis 1"
