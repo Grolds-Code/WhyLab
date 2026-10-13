@@ -1,10 +1,14 @@
 import json
 
 import httpx
+import pytest
 
+from whylab.application.builder import InvestigationDraft
 from whylab.interpreters.llm import (
+    LLMInterpreterError,
     LLMQuestionInterpreter,
     _normalize_generated_rule_values,
+    _validate_generated_draft,
 )
 
 
@@ -294,3 +298,109 @@ def test_normalizes_stringified_structured_arrays():
 
     assert rule["value"] == 20
     assert rule["unit"] == "Mbps"
+
+
+
+def test_rejects_conflicting_effects_for_same_predicate():
+    draft = InvestigationDraft.model_validate(
+        {
+            "domain": "home_networking",
+            "variables": ["signal"],
+            "confounders": [],
+            "hypotheses": [
+                {
+                    "claim": "Hypothesis one",
+                    "predictions": [],
+                    "falsifiers": [],
+                    "confounders": [],
+                    "uncertainties": [],
+                    "evidence_rules": [
+                        {
+                            "variable": "signal",
+                            "operator": ">=",
+                            "value": 1,
+                            "unit": None,
+                            "effect": "supports",
+                            "reason": "Signal supports H1.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                        {
+                            "variable": "signal",
+                            "operator": ">=",
+                            "value": 1,
+                            "unit": None,
+                            "effect": "contradicts",
+                            "reason": "Same signal contradicts H1.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                    ],
+                },
+                {
+                    "claim": "Hypothesis two",
+                    "predictions": [],
+                    "falsifiers": [],
+                    "confounders": [],
+                    "uncertainties": [],
+                    "evidence_rules": [
+                        {
+                            "variable": "signal",
+                            "operator": ">=",
+                            "value": 2,
+                            "unit": None,
+                            "effect": "supports",
+                            "reason": "Higher signal supports H2.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                        {
+                            "variable": "signal",
+                            "operator": "<",
+                            "value": 2,
+                            "unit": None,
+                            "effect": "contradicts",
+                            "reason": "Lower signal contradicts H2.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                    ],
+                },
+                {
+                    "claim": "Hypothesis three",
+                    "predictions": [],
+                    "falsifiers": [],
+                    "confounders": [],
+                    "uncertainties": [],
+                    "evidence_rules": [
+                        {
+                            "variable": "signal",
+                            "operator": ">=",
+                            "value": 3,
+                            "unit": None,
+                            "effect": "supports",
+                            "reason": "Higher signal supports H3.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                        {
+                            "variable": "signal",
+                            "operator": "<",
+                            "value": 3,
+                            "unit": None,
+                            "effect": "contradicts",
+                            "reason": "Lower signal contradicts H3.",
+                            "provenance": "model_generated_assumption",
+                            "rationale": "Test assumption.",
+                        },
+                    ],
+                },
+            ],
+        }
+    )
+
+    with pytest.raises(
+        LLMInterpreterError,
+        match="same evidence predicate",
+    ):
+        _validate_generated_draft(draft)

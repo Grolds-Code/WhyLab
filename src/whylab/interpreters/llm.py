@@ -153,6 +153,28 @@ def _validate_generated_draft(draft: InvestigationDraft) -> None:
                 "rule and at least one contradicting rule."
             )
 
+        predicate_effects: dict[tuple, set[str]] = {}
+
+        for rule in hypothesis.evidence_rules:
+            predicate = (
+                rule.variable,
+                rule.operator.value,
+                str(rule.value),
+                rule.unit,
+            )
+            predicate_effects.setdefault(predicate, set()).add(
+                rule.effect.value
+            )
+
+        if any(
+            len(predicate_effect_set) > 1
+            for predicate_effect_set in predicate_effects.values()
+        ):
+            raise LLMInterpreterError(
+                "The same evidence predicate cannot both support and "
+                "contradict the same hypothesis."
+            )
+
         for rule in hypothesis.evidence_rules:
             if rule.variable not in allowed_variables:
                 raise LLMInterpreterError(
@@ -307,9 +329,12 @@ class LLMQuestionInterpreter:
                             "exactly 4 competing hypotheses, at least one measurable "
                             "top-level variable, and 2 to 3 evidence_rules for every "
                             "hypothesis. Every rule variable must exactly match a "
-                            "top-level variable. For <, <=, >, or >= comparisons, "
-                            "value MUST be a bare JSON number; put units only in "
-                            "the unit field."
+                            "top-level variable. Supporting and contradicting "
+                            "rules for the same hypothesis MUST use genuinely "
+                            "different predicates; the same variable/operator/value "
+                            "combination cannot have both effects. For <, <=, >, "
+                            "or >= comparisons, value MUST be a bare JSON number; "
+                            "put units only in the unit field."
                         ),
                     }
                 )
