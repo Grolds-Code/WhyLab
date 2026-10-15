@@ -364,6 +364,18 @@ Install dependencies:
 uv sync
 ```
 
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+For generic causal-question generation, set `WHYLAB_LLM_API_KEY` in your environment.
+
+The default model route is `openrouter/free`.
+
+Without `WHYLAB_LLM_API_KEY`, WhyLab falls back to the basil regression interpreter rather than generic LLM generation.
+
 Run the test suite:
 
 ```bash
