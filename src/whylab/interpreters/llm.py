@@ -327,10 +327,35 @@ class LLMQuestionInterpreter:
 
                 hypotheses = parsed.get("hypotheses")
 
-                if isinstance(hypotheses, list) and len(hypotheses) > 4:
+                if isinstance(hypotheses, list):
+                    valid_hypotheses = []
+
+                    for hypothesis in hypotheses:
+                        if not isinstance(hypothesis, dict):
+                            continue
+
+                        rules = hypothesis.get("evidence_rules")
+
+                        if not isinstance(rules, list):
+                            continue
+
+                        effects = {
+                            rule.get("effect")
+                            for rule in rules
+                            if isinstance(rule, dict)
+                        }
+
+                        if {"supports", "contradicts"} <= effects:
+                            valid_hypotheses.append(hypothesis)
+
+                    hypotheses = valid_hypotheses
+
+                    if len(hypotheses) > 4:
+                        hypotheses = hypotheses[:4]
+
                     parsed = {
                         **parsed,
-                        "hypotheses": hypotheses[:4],
+                        "hypotheses": hypotheses,
                     }
 
                 draft = InvestigationDraft.model_validate(parsed)

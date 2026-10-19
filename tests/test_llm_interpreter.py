@@ -632,3 +632,85 @@ def test_interpreter_accepts_structured_content_without_tool_calls():
 
     assert draft.domain == "home_networking"
     assert len(draft.hypotheses) == 4
+
+
+def test_interpreter_discards_hypothesis_missing_complementary_effect():
+    draft_payload = {
+        "domain": "home_networking",
+        "variables": ["wifi_speed_mbps"],
+        "confounders": [],
+        "hypotheses": [
+            {
+                "claim": f"Hypothesis {index}",
+                "predictions": [],
+                "falsifiers": [],
+                "confounders": [],
+                "uncertainties": [],
+                "evidence_rules": [
+                    {
+                        "variable": "wifi_speed_mbps",
+                        "operator": "<=",
+                        "value": 10 + index,
+                        "unit": "Mbps",
+                        "effect": "supports",
+                        "reason": f"Supports hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                    {
+                        "variable": "wifi_speed_mbps",
+                        "operator": ">=",
+                        "value": 90 + index,
+                        "unit": "Mbps",
+                        "effect": (
+                            "supports"
+                            if index == 4
+                            else "contradicts"
+                        ),
+                        "reason": f"Second rule for hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                ],
+            }
+            for index in range(1, 5)
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "create_investigation_draft",
+                                        "arguments": json.dumps(draft_payload),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    interpreter = LLMQuestionInterpreter(
+        api_key="test-key",
+        client=client,
+    )
+
+    draft = interpreter.interpret(
+        "Why does my Wi-Fi slow down every evening?"
+    )
+
+    assert len(draft.hypotheses) == 3
+    assert [hypothesis.claim for hypothesis in draft.hypotheses] == [
+        "Hypothesis 1",
+        "Hypothesis 2",
+        "Hypothesis 3",
+    ]

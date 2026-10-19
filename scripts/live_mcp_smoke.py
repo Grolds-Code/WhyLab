@@ -19,6 +19,29 @@ def parse_result(result):
     raise RuntimeError("MCP tool returned no JSON text content")
 
 
+
+def satisfying_value(rule):
+    """Return a simple numeric value that satisfies a generated rule."""
+
+    operator = rule["operator"]
+    value = rule["value"]
+
+    if operator == ">":
+        return value + 1
+    if operator == ">=":
+        return value
+    if operator == "<":
+        return value - 1
+    if operator == "<=":
+        return value
+    if operator == "==":
+        return value
+    if operator == "!=":
+        return value + 1
+
+    raise AssertionError(f"Unsupported smoke-test operator: {operator}")
+
+
 async def run_smoke_test(url: str) -> None:
     investigation_id = "whylab-live-smoke"
 
@@ -41,32 +64,37 @@ async def run_smoke_test(url: str) -> None:
                 {
                     "investigation_id": investigation_id,
                     "question": (
-                        "My basil keeps wilting even though I'm watering it. "
-                        "Help me figure out why."
+                        "My Wi-Fi gets slow every evening even though it works "
+                        "well during the day. Help me figure out why."
                     ),
                 },
             )
         )
 
-        states = {
-            hypothesis["id"]: hypothesis["state"]
-            for hypothesis in investigation["hypotheses"]
-        }
-        assert states == {
-            "H1": "open",
-            "H2": "open",
-            "H3": "open",
-        }, states
-        print("PASS: investigation starts with all hypotheses open")
+        hypotheses = investigation["hypotheses"]
+        assert len(hypotheses) == 4, hypotheses
+        assert all(
+            hypothesis["state"] == "open"
+            for hypothesis in hypotheses
+        ), hypotheses
+        assert investigation["variables"], investigation
+        print("PASS: investigation starts with four open hypotheses")
+
+        target_hypothesis = hypotheses[0]
+        support_rule = next(
+            rule
+            for rule in target_hypothesis["evidence_rules"]
+            if rule["effect"] == "supports"
+        )
 
         updated = parse_result(
             await client.call_tool(
                 "record_observation",
                 {
                     "investigation_id": investigation_id,
-                    "variable": "soil_moisture",
-                    "value": 67,
-                    "unit": "percent",
+                    "variable": support_rule["variable"],
+                    "value": satisfying_value(support_rule),
+                    "unit": support_rule.get("unit"),
                 },
             )
         )
@@ -75,11 +103,12 @@ async def run_smoke_test(url: str) -> None:
             hypothesis["id"]: hypothesis["state"]
             for hypothesis in updated["hypotheses"]
         }
-        assert states == {
-            "H1": "contradicted",
-            "H2": "supported",
-            "H3": "open",
-        }, states
+        assert states[target_hypothesis["id"]] == "supported", states
+        assert any(
+            hypothesis["evidence_for"]
+            for hypothesis in updated["hypotheses"]
+            if hypothesis["id"] == target_hypothesis["id"]
+        ), updated
         print("PASS: deterministic evidence update is correct")
 
         report = parse_result(
@@ -89,10 +118,12 @@ async def run_smoke_test(url: str) -> None:
             )
         )
 
-        assert [item["id"] for item in report["supported"]] == ["H2"]
-        assert [item["id"] for item in report["contradicted"]] == ["H1"]
-        assert [item["id"] for item in report["open"]] == ["H3"]
-        assert report["observation_count"] == 1
+        supported_ids = {
+            item["id"]
+            for item in report["supported"]
+        }
+        assert target_hypothesis["id"] in supported_ids, report
+        assert report["observation_count"] == 1, report
         print("PASS: evidence report is correct")
 
         next_test = parse_result(
@@ -102,10 +133,17 @@ async def run_smoke_test(url: str) -> None:
             )
         )
 
-        assert next_test["target_hypotheses"] == ["H2", "H3"]
-        assert next_test["variable_changed"] == "drainage"
-        assert next_test["duration_days"] == 3
-        print("PASS: next discriminating experiment is correct")
+        assert next_test["target_hypotheses"], next_test
+        assert next_test["observations_required"], next_test
+        assert next_test["predicted_results"], next_test
+        assert all(
+            hypothesis_id in {
+                hypothesis["id"]
+                for hypothesis in updated["hypotheses"]
+            }
+            for hypothesis_id in next_test["target_hypotheses"]
+        ), next_test
+        print("PASS: next discriminating experiment is valid")
 
     print("\nWhyLab live MCP smoke test PASSED")
 
