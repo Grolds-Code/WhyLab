@@ -768,10 +768,12 @@ function App() {
                     </div>
 
                     <div className="experiment-grid">
-                      <div className="experiment-detail">
-                        <span className="card-label">Change</span>
-                        <strong>{nextTest.variable_changed}</strong>
-                      </div>
+                      {nextTest.variable_changed && (
+                        <div className="experiment-detail">
+                          <span className="card-label">Change</span>
+                          <strong>{nextTest.variable_changed}</strong>
+                        </div>
+                      )}
 
                       <div className="experiment-detail">
                         <span className="card-label">Compare</span>
@@ -780,13 +782,15 @@ function App() {
                         </strong>
                       </div>
 
-                      <div className="experiment-detail">
-                        <span className="card-label">Duration</span>
-                        <strong>
-                          {nextTest.duration_days}{' '}
-                          {nextTest.duration_days === 1 ? 'day' : 'days'}
-                        </strong>
-                      </div>
+                      {nextTest.duration_days != null && (
+                        <div className="experiment-detail">
+                          <span className="card-label">Duration</span>
+                          <strong>
+                            {nextTest.duration_days}{' '}
+                            {nextTest.duration_days === 1 ? 'day' : 'days'}
+                          </strong>
+                        </div>
+                      )}
                     </div>
 
                     <div className="experiment-body">
