@@ -565,3 +565,70 @@ def test_interpreter_ignores_unknown_hypothesis_fields():
 
     assert len(draft.hypotheses) == 4
     assert draft.hypotheses[0].claim == "Hypothesis 1"
+
+
+def test_interpreter_accepts_structured_content_without_tool_calls():
+    draft_payload = {
+        "domain": "home_networking",
+        "variables": ["wifi_speed_mbps"],
+        "confounders": [],
+        "hypotheses": [
+            {
+                "claim": f"Hypothesis {index}",
+                "predictions": [],
+                "falsifiers": [],
+                "confounders": [],
+                "uncertainties": [],
+                "evidence_rules": [
+                    {
+                        "variable": "wifi_speed_mbps",
+                        "operator": "<=",
+                        "value": 10 + index,
+                        "unit": "Mbps",
+                        "effect": "supports",
+                        "reason": f"Supports hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                    {
+                        "variable": "wifi_speed_mbps",
+                        "operator": ">=",
+                        "value": 90 + index,
+                        "unit": "Mbps",
+                        "effect": "contradicts",
+                        "reason": f"Contradicts hypothesis {index}.",
+                        "provenance": "model_generated_assumption",
+                        "rationale": "Test assumption.",
+                    },
+                ],
+            }
+            for index in range(1, 5)
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(draft_payload),
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    interpreter = LLMQuestionInterpreter(
+        api_key="test-key",
+        client=client,
+    )
+
+    draft = interpreter.interpret(
+        "Why does my Wi-Fi slow down every evening?"
+    )
+
+    assert draft.domain == "home_networking"
+    assert len(draft.hypotheses) == 4

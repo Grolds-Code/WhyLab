@@ -300,10 +300,19 @@ class LLMQuestionInterpreter:
                 response.raise_for_status()
                 body = response.json()
 
-                arguments = (
-                    body["choices"][0]["message"]["tool_calls"][0]
-                    ["function"]["arguments"]
-                )
+                message = body["choices"][0]["message"]
+                tool_calls = message.get("tool_calls")
+
+                if isinstance(tool_calls, list) and tool_calls:
+                    arguments = tool_calls[0]["function"]["arguments"]
+                else:
+                    arguments = message.get("content")
+
+                    if arguments is None:
+                        raise LLMInterpreterError(
+                            "Interpreter returned neither tool arguments "
+                            "nor structured content."
+                        )
 
                 if isinstance(arguments, str):
                     parsed = json.loads(arguments)
