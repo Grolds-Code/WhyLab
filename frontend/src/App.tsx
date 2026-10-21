@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   checkHealth,
   getEvidenceReport,
+  getInvestigation,
   getNextTest,
   recordObservation,
   startInvestigation,
@@ -138,6 +139,69 @@ function App() {
         setIsServiceLive(isLive)
       }
     })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const investigationId = new URLSearchParams(
+      window.location.search,
+    ).get('investigation')
+
+    if (!investigationId) {
+      return
+    }
+
+    const persistedInvestigationId = investigationId
+    let cancelled = false
+
+    async function loadPersistedInvestigation() {
+      await Promise.resolve()
+
+      if (cancelled) {
+        return
+      }
+
+      setIsStarting(true)
+      setError(null)
+
+      getInvestigation(persistedInvestigationId)
+        .then((loaded) => {
+        if (cancelled) {
+          return
+        }
+
+        setInvestigation(loaded)
+        setQuestion(loaded.question)
+        setObservationVariable(loaded.variables[0] ?? '')
+        setObservationValue('')
+        setEvidenceReport(null)
+        setEvidenceReportError(null)
+        setNextTest(null)
+        setNextTestError(null)
+        setActiveView('investigation')
+      })
+      .catch((requestError) => {
+        if (cancelled) {
+          return
+        }
+
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'WhyLab could not load this investigation.',
+        )
+      })
+        .finally(() => {
+          if (!cancelled) {
+            setIsStarting(false)
+          }
+        })
+    }
+
+    void loadPersistedInvestigation()
 
     return () => {
       cancelled = true

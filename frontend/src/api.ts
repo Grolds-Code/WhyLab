@@ -76,6 +76,20 @@ async function readError(response: Response): Promise<string> {
   }
 }
 
+export async function getInvestigation(
+  investigationId: string,
+): Promise<Investigation> {
+  const response = await fetch(
+    `${API_BASE}/investigations/${encodeURIComponent(investigationId)}`,
+  )
+
+  if (!response.ok) {
+    throw new Error(await readError(response))
+  }
+
+  return (await response.json()) as Investigation
+}
+
 export async function startInvestigation(
   question: string,
 ): Promise<Investigation> {
