@@ -16,7 +16,7 @@ A clear hackathon-specific path showing which Alexa+ tools participants could ac
 **Actual result:**  
 The native Alexa+ developer tools were gated to selected partners. This was not immediately obvious from every setup path, so identifying the supported hackathon route required additional investigation.
 
-**Severity:** Important
+**Severity:** 4/5 — High
 
 **Workaround:**  
 I implemented the supported self-hosted MCP approach over Streamable HTTP and built a web-based Alexa+ concept experience backed by the same live investigation state.
@@ -47,7 +47,7 @@ A straightforward documented command or diagnostic showing the protocol version 
 **Actual result:**  
 The Python package version alone did not establish protocol compliance. I needed to inspect the SDK and then run a live client check against production.
 
-**Severity:** Moderate
+**Severity:** 3/5 — Moderate
 
 **Workaround:**  
 I connected directly to the production MCP endpoint and read the negotiated protocol version, confirming that WhyLab uses MCP protocol `2026-07-28`.
@@ -77,7 +77,7 @@ The client-facing error or server logs would surface the underlying application 
 **Actual result:**  
 The initial client error was generic, while the useful root cause appeared deeper inside nested asynchronous task-group and transport traces. The MCP connection itself was healthy, but distinguishing a transport problem from an application-level tool failure required additional log inspection.
 
-**Severity:** Moderate
+**Severity:** 3/5 — Moderate
 
 **Workaround:**  
 I inspected server-side logs, reproduced the failure locally, added a regression test, hardened the structured-output validator, and generalized the live MCP smoke test. The deployed workflow subsequently passed end to end.
