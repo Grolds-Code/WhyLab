@@ -181,6 +181,31 @@ function App() {
         setEvidenceReportError(null)
         setNextTest(null)
         setNextTestError(null)
+
+        if (loaded.observations.length > 0) {
+          void getNextTest(loaded.id)
+            .then((experiment) => {
+              if (cancelled) {
+                return
+              }
+
+              setNextTest(experiment)
+              setNextTestError(null)
+            })
+            .catch((requestError) => {
+              if (cancelled) {
+                return
+              }
+
+              setNextTest(null)
+              setNextTestError(
+                requestError instanceof Error
+                  ? requestError.message
+                  : 'WhyLab could not recommend the next experiment.',
+              )
+            })
+        }
+
         setActiveView('investigation')
       })
       .catch((requestError) => {
@@ -806,7 +831,7 @@ function App() {
                   </p>
                 </div>
 
-                {!nextTest && (
+                {!nextTest && !nextTestError && (
                   <div className="error-banner">
                     <strong>No experiment recommended yet.</strong>
                     <span>
